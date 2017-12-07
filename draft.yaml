@@ -1,0 +1,168 @@
+# remember: "Abstraction gradient"
+
+# At the most concrete: we have formulas.  It doesn't get much more solid.
+#  It also doesn't get much more verbose.
+# One level up: we have basting.  This introduces concretely named relationships.
+#  (See https://en.wikipedia.org/wiki/Quilting#Basting_the_layers .)
+#  The import wiring in the basting layer gives us the point to to check references
+#  to other formulas in the pipeline and catalogs in the bigger picture.
+#  It's *not* suitable for deriving updates, because it still uses explicit
+#  specific version names; any version *ranges* must be a higher level.
+#  Formula actions are also still considered resolved at the basting level
+#  (this is a practical detail; basting is just More info attached to a formula).
+#  Basting is suitable for saving in a catalog replay because it contains
+#  enough connectivity info to order the replay actions.
+# Two levels up: Weapons hot, opinions allowed.  The core serializable API
+#  types no longer care what you do, as long as you can emit basting.
+
+# So what would we like to deduplicate for saving keystrokes, and
+#  what would we like to abstract for updatability?
+# Several things:
+#    - Version ranges / tracks
+#    - Handling PATH for friendly packages
+#    - Handling a default mount for friendly packages
+#    - Making groups of packages which we tend to pull in together.
+#    - Often, express a series of steps with all the same base and
+#      just one ware/path being used as a message bus.
+# These all seem to be pretty recurring structures, so maybe we
+#  can address most of the needs with some interpretation of yaml.
+#  We'll give this a shot in the examples, below.
+
+# Possibly three layer up: how shall we template whole pipelines
+#  with multiple steps?  Yes, it does come up: the typical
+#  example is the capture process we tend to do around node_modules.
+#  (Possibly interesting feature: this is common in development,
+#  but pretty much non-existent for formulas being used as part
+#  of a user's (side-effecting) desktop.)
+# Extreme edition: generating a matrix of steps with a param list?
+#  (This gets *really* nontrivial.  How are you doing fan-in, then?)
+
+# Please be wary of trying to list everything imaginable explicitly.
+#  The endgame of full flexibility is... lisp.  Which is all well
+#  and good; but remember: "Abstraction gradient".  We want to get
+#  as much done as we can with basic, less-than-turing-complete tools.
+#  It's fine to give up and use a full programming language; we
+#  just want to provide enough tooling that that's not the *first*
+#  thing you need to do to get useful work done!
+
+# The last-mile challenge: we need some control hints for when to
+#  release catalogs, as well.
+#  (Do we?  I dunno.  Run through the "capture node_modules" user
+#  story in your head: we need a catalog to checkpoint and fence off
+#  the crazy; but my acceptance test is actually downstream in
+#  another domain (see also: jump down to "Story 1").)
+# Speculative evaluation of downstreams is also cool in other
+#  scenarios; for example, see the rust team testing their compiler
+#  changes against *the entire set of libraries in cargo* in order
+#  to gather real-world information about how impactful changes
+#  really would be.
+# It's possible that we need some pretty wild rules to handle
+#  speculative downstream evaluations properly -- something like
+#  using the layer-1/basting graph, but with an override like
+#  "$catalog:$version" now expresses as "$catalog:hawt".
+
+---
+
+## Snippets are gatherings of script.
+##  They're stringy code, and we know it, so we do indeed go full power
+##  and give you complete freetext templating.
+##  You can compose these into the actions in your formulas.
+snippets:
+  "go-bundle":
+    ## The interpreter is just a regular command to exec.  We'll stream
+    ##  the joined content lines to it.  You can compose snippets
+    ##  together only if they all have the same interpreter.
+    interpreter: ["bash"]
+    ## Params are... params.
+    ##  We have a couple of known types.  It's a very short whitelist.
+    ##  We'll borrow the syntax from graphql for optionality, perhaps.
+    params:
+      "pkg": "string"
+      "cmd": "?string"
+    ## There's very little in the way of detecting hidden dependencies
+    ##  between segments of snippets if you start linearly composing them.
+    ##  Be careful and be wise.  We can't help you here; it's full code.
+    content:
+      - cd "$GOPATH/{{ .pkg }}" ## yes, this is both env var and template.
+      - go install {{ .cmd }}
+      - go test ./...
+
+---
+
+pipeline:
+  include:
+    - "snippets/go-bundle" ## explicit is better than implicit
+  architypes:
+    "builder":
+      ## Base images have some blessing.  but really only that
+      ##  by default you *will* have one, so its necessary to be
+      ##  clear if you want to override that.
+      - base: "debish"
+      ## Asking for any app may drag in several catalogs, put
+      ##  them in defacto locations, and will activate our default
+      ##  PATH-management/symlinker.
+      - app: "go"
+      - custom: {catalog:"whatsit.net/zow", path:"/zow"}
+      - env:
+        "GOPATH": "/task/.gopath"
+  steps:
+    "tool-1":
+      architype: "builder"
+      imports:
+        "/task/src": "wowcorp.oi/src/dohickey"
+      action: snippets:
+        - {script: "echo starting hard work..."}
+        - {snippet: "go-bundle", params:{"pkg": "wowcorp.oi/src/dohickey"}}
+        - {script: "echo tada!"}
+
+---
+
+# USER STORIES
+
+## Here are the major stories I can think of:
+##    1. "I'm a developer on a project with a git repo."
+##    2. "I'm the devops guy at mycorp, and I need to deploy a set of these microservices."
+##    3. "I'm the maintainer of undistro, and I actually care about all these things,
+##        but need to process them in reasonably sized batches."
+##
+## Story 1 is pretty easy to handle: you just segment the "internal" vs
+## the "external" dependencies, and run with it.  Externals need an explicit
+## action to update.
+##
+## Story 2 involves polling your other projects or something?  Unsure.
+## This one also gets interesting when you start considering your
+## developers might have a dependency on other microservices from other
+## parts of the company... this more or less looks like a cyclic
+## dependency!  But, we can break it safely through the magic of catalogs.
+##
+## Story 3 is real hardball.
+
+# RANDOM THOUGHTS
+
+## We should problem have a `hitch unfavorite $catalog:$release` command.
+## This would move that release into a separate part of the object,
+## still keeping all the info, but causing other tools like
+## `rio mirror --bulk` to start skipping it, and possibly elide it by
+## default from other UIs as well.
+##
+## It's a little unclear how centrally to put this.
+## The mirroring thing in particular is probably a per-organization
+## opinion thing.  It might belong a bit off to one side.
+
+# THINGS THAT HAVE BEEN WRONG
+
+## The interpreter is a whitelist field, because we have to know
+##  how to inject a *sequence* to it.  (Maybe we can make `.join"\n"`
+##  a default, though; it's typically reasonable enough; for )
+## ...
+## RONG.
+##
+## We can't get the payoff of per-step checkmarks or exit codes
+## unless we deeply teach repeatr about those things, or make
+## some other injectable protocol for it.  Which would be cool.
+## But is fundamentally *way* out there right now.
+## After exit codes, we would start wanting output separation.
+## And now you're in full on junit xml territory.
+## (And maybe that's okay, and you should make an interpreter
+## which actually *does just that* and emits it as a ware or
+## as fully structured stdout.)
