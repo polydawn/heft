@@ -1,0 +1,65 @@
+digraph {
+	rankdir=LR;
+	splines=ortho;
+	
+	subgraph cluster_stage0 {
+		label="stage 0";
+		splines=ortho;
+		graph[style=dotted]
+
+		debseedImport    [color="gray45",shape="box",penwidth=3]
+		debootstrapSrc   [color="green",shape="diamond",peripheries=3,fixedsize=shape]
+		debuerrotypeSrc  [color="green",shape="diamond",peripheries=3,fixedsize=shape]
+		archiveDebOrg    [color="red",shape="septagon",peripheries=3,fixedsize=shape]
+		step_debseed     [color="blue",shape="cds",peripheries=3]
+		debseed          [color="darkgreen",shape="box"]
+		step_debseedTest [color="blue",shape="cds",peripheries=3]
+		debseedTest_gate [color="pink",shape="diamond",fixedsize=shape,label=""]
+		debseedRelease   [color="gray45",shape="box",penwidth=3]
+		{debseedImport, debootstrapSrc, archiveDebOrg, debuerrotypeSrc} -> step_debseed -> {debseed}
+		{debseed} -> step_debseedTest -> {debseedTest_gate}
+		{debseed, debseedTest_gate} -> {debseedRelease}
+		debseedRelease->debseedImport [stroke="dotted",constraint=false,color="gray50"]
+
+		step_debbuilder     [color="blue",shape="cds",peripheries=3]
+		debbuilder          [color="darkgreen",shape="box"]
+		step_debbuilderTest [color="blue",shape="cds",peripheries=3]
+		debbuilderTest_gate [color="pink",shape="diamond",fixedsize=shape,label=""]
+		debbuilderRelease   [color="gray45",shape="box",penwidth=3]
+		{debseedImport, debootstrapSrc, archiveDebOrg, debuerrotypeSrc} -> step_debbuilder -> {debbuilder}
+		{debbuilder} -> step_debbuilderTest -> {debbuilderTest_gate}
+		{debbuilder, debbuilderTest_gate} -> {debbuilderRelease}
+	}
+
+	step_x11bundleCapture    [color="blue",shape="cds",peripheries=3]
+	x11bundle                [color="darkgreen",shape="box"]
+	{debseedImport} -> step_x11bundleCapture -> {x11bundle}
+
+	step_thunderbirdCapture    [color="blue",shape="cds",peripheries=3]
+	thunderbird                [color="darkgreen",shape="box"]
+	{x11bundle} -> step_thunderbirdCapture -> {thunderbird}
+	thunderbirdRelease         [color="gray45",shape="box",penwidth=3]
+	{thunderbird} -> {thunderbirdRelease}
+	
+	subgraph cluster_stageUser {
+		graph[style=dotted]
+
+		thunderbirdImport    [color="gray45",shape="box",penwidth=3]
+		thunderbirdRelease->thunderbirdImport [stroke="dotted",constraint=false,color="gray50"]
+		twerk_thunderbird    [color="blue",shape="cds",peripheries=3]
+		{thunderbirdImport} -> twerk_thunderbird
+	}
+
+	step_kolourpaintCapture    [color="blue",shape="cds",peripheries=3]
+	kolourpaint                [color="darkgreen",shape="box"]
+	{x11bundle} -> step_kolourpaintCapture -> {kolourpaint}
+	kolourpaintRelease         [color="gray45",shape="box",penwidth=3]
+	{kolourpaint} -> {kolourpaintRelease}
+
+	subgraph cluster_stageUser {	
+		kolourpaintImport    [color="gray45",shape="box",penwidth=3]
+		kolourpaintRelease->kolourpaintImport [stroke="dotted",constraint=false,color="gray50"]
+		twerk_kolourpaint    [color="blue",shape="cds",peripheries=3]
+		{kolourpaintImport} -> twerk_kolourpaint	
+	}
+}
