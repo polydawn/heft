@@ -40,7 +40,7 @@ func execfile(filename string) {
 	thread := &sk.Thread{}
 	globals := newGlobals()
 	if err := sk.ExecFile(thread, filename, nil, globals); err != nil {
-		fmt.Fprintf(os.Stderr, "larking: %s", err)
+		fmt.Fprintf(os.Stderr, "larking: %s\n", err)
 		os.Exit(4)
 	}
 }
