@@ -5,9 +5,8 @@ import (
 	"os"
 
 	sk "github.com/google/skylark"
-	"github.com/polydawn/refmt"
-	"github.com/polydawn/refmt/json"
-	tlapi "go.polydawn.net/go-timeless-api"
+
+	"go.polydawn.net/heft/skyform"
 )
 
 func main() {
@@ -25,14 +24,7 @@ func newGlobals() sk.StringDict {
 			}
 			return sk.None, nil
 		}),
-		"writeFormula": sk.NewBuiltin("writeFormula", func(thread *sk.Thread, fn *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (sk.Value, error) {
-			var frm tlapi.FormulaUnion
-			if err := refmt.NewMarshallerAtlased(json.EncodeOptions{}, os.Stdout, tlapi.RepeatrAtlas).Marshal(frm); err != nil {
-				return nil, err
-			}
-
-			return sk.None, nil
-		}),
+		"formula": sk.NewBuiltin("formula", skyform.MakeFormulaUnion),
 	}
 }
 
