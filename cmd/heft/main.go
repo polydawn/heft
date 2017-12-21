@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/google/skylark"
+	sk "github.com/google/skylark"
 )
 
 func main() {
@@ -12,14 +12,23 @@ func main() {
 }
 
 // Makes a new globals dict with our favorite custom bits in it.
-func newGlobals() skylark.StringDict {
-	return skylark.StringDict{}
+func newGlobals() sk.StringDict {
+	return sk.StringDict{
+		"iamheft": sk.NewBuiltin("iamheft", func(thread *sk.Thread, fn *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (sk.Value, error) {
+			if thread.Print != nil {
+				thread.Print(thread, "yes")
+			} else {
+				fmt.Fprintln(os.Stderr, "yes")
+			}
+			return sk.None, nil
+		}),
+	}
 }
 
 func execfile(filename string) {
-	thread := &skylark.Thread{}
+	thread := &sk.Thread{}
 	globals := newGlobals()
-	if err := skylark.ExecFile(thread, filename, nil, globals); err != nil {
+	if err := sk.ExecFile(thread, filename, nil, globals); err != nil {
 		fmt.Fprintf(os.Stderr, "larking: %s", err)
 		os.Exit(4)
 	}
