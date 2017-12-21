@@ -149,6 +149,21 @@ pipeline:
 ## The mirroring thing in particular is probably a per-organization
 ## opinion thing.  It might belong a bit off to one side.
 
+## Should we actually have an explicit ability to get more
+## things to do from a file inside another ware?
+## It would be strongly referenced.  We're in the clear on that.
+##
+## This would make it easy to make a git-submodule-like flow without
+## the git submodules: a rio wares list that you commit in the repo,
+## and bam bam, you've got some problems solved.
+##
+## It goes almost without saying that this would pose all the same
+## issues around URLs that git submodules already experience: sure,
+## maybe you want some in your repo for ease, but they're *going*
+## to experience zeerust and linkrot, so we need some schema to
+## join them against to provide mirrors later/externally.
+## Coming up with such a scheme has been a sticky point, historically.
+
 # THINGS THAT HAVE BEEN WRONG
 
 ## The interpreter is a whitelist field, because we have to know
