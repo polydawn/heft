@@ -1,14 +1,14 @@
 iamheft()
+
+def demo(f):
+	print(f.toJson())
+	print(f.setupHash())
+
 print("---")
-print(formula({}).toJson())
-print(formula({}).setupHash())
+demo(formula({}))
 print("---")
-print(formula({"formula":{}}).toJson())
-print(formula({"formula":{}}).setupHash())
+demo(formula({"formula":{}}))
 print("---")
-print(formula({
+demo(formula({
 	"formula":{"action":{"exec":["wow", "-c", "as\ndf\n"]}}
-}).toJson())
-print(formula({
-	"formula":{"action":{"exec":["wow", "-c", "as\ndf\n"]}}
-}).setupHash())
+}))
