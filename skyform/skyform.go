@@ -65,6 +65,10 @@ func (s FormulaUnion) Attr(name string) (sk.Value, error) {
 			}
 			return sk.String(buf.String()), nil
 		}), nil
+	case "setupHash":
+		return sk.NewBuiltin(name, func(thread *sk.Thread, fn *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (sk.Value, error) {
+			return sk.String(s.Formula.SetupHash()), nil
+		}), nil
 	default:
 		return nil, fmt.Errorf("%v has no .%s attribute", s.Type(), name)
 	}
