@@ -10,19 +10,34 @@ import (
 	sk "github.com/google/skylark"
 	"github.com/polydawn/refmt"
 	"github.com/polydawn/refmt/json"
+	"github.com/polydawn/refmt/obj"
+	"github.com/polydawn/refmt/shared"
 	tlapi "go.polydawn.net/go-timeless-api"
 )
 
-func MakeFormulaUnion(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (sk.Value, error) {
-	if len(args) > 0 {
-		return nil, fmt.Errorf("formula: unexpected positional arguments")
-	}
+func MakeFormulaUnion(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (_ sk.Value, err error) {
 	v := FormulaUnion{}
-	// this is, interestingly enough, a job for the obj-obj refmt composition.
-	// we'll come back to this after making more patches to hippogryph;
-	// this'll be a lot less bothersome to write if we could have map[string]iface.
-	// we could also go straight to writing a refmt tokenSource.  skylarkstruct writeJSON has half the work.
-	return v, nil
+	switch len(kwargs) {
+	case 0: // pass
+	default:
+		return nil, fmt.Errorf("formula: unexpected keyword arguments")
+	}
+	switch args.Len() {
+	case 0: // pass
+	case 1: // take this object as a baseline value
+		vtoker := NewValueTokenizer()
+		vtoker.Bind(args.Index(0))
+		umarsh := obj.NewUnmarshaller(tlapi.RepeatrAtlas)
+		umarsh.Bind(&v.FormulaUnion)
+		pump := shared.TokenPump{
+			vtoker,
+			umarsh,
+		}
+		err = pump.Run()
+	default:
+		return nil, fmt.Errorf("formula: unexpected extra positional arguments; only 1 is valid")
+	}
+	return v, err
 }
 
 var (

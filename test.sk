@@ -1,0 +1,9 @@
+iamheft()
+print("---")
+print(formula({}).toJson())
+print("---")
+print(formula({"formula":{}}).toJson())
+print("---")
+print(formula({
+	"formula":{"action":{"exec":["wow", "-c", "as\ndf\n"]}}
+}).toJson())
