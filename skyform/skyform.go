@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	sk "github.com/google/skylark"
+	"github.com/google/skylark/syntax"
 	"github.com/polydawn/refmt"
 	"github.com/polydawn/refmt/json"
 	"github.com/polydawn/refmt/obj"
@@ -75,4 +76,22 @@ func (s FormulaUnion) Attr(name string) (sk.Value, error) {
 }
 func (s FormulaUnion) AttrNames() []string {
 	return []string{}
+}
+
+func (x FormulaUnion) Binary(op syntax.Token, y sk.Value, side sk.Side) (sk.Value, error) {
+	y2, ok := y.(FormulaUnion)
+	if !ok {
+		return nil, fmt.Errorf("cannot add %s to %s", y.Type(), x.Type())
+	}
+	if side == sk.Right { // this is terrifying
+		x, y2 = y2, x
+	}
+	switch op {
+	case syntax.PLUS:
+		z := FormulaUnion{x.FormulaUnion}
+		z.Formula = x.Formula.Apply(y2.Formula)
+		return z, nil
+	default:
+		return nil, fmt.Errorf("binary op %q not supported on %s", op, x.Type())
+	}
 }

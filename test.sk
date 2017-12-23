@@ -12,3 +12,21 @@ print("---")
 demo(formula({
 	"formula":{"action":{"exec":["wow", "-c", "as\ndf\n"]}}
 }))
+print("---")
+f1 = formula({
+	"formula":{"action":{
+		"exec":["wow", "-c", "as\ndf\n"],
+	}},
+})
+f2 = formula({
+	"formula":{"action":{
+		"env":{"VAR1":"bees"},
+	}},
+})
+f3 = formula({
+	"formula":{"action":{
+		"env":{"VAR2":"bats"},
+		"exec":["crash", "override"],
+	}},
+})
+demo(f1 + f2 + f3)
