@@ -64,3 +64,68 @@ batch = new_basting({"steps":{
 }})
 print(batch)
 
+
+
+# 'reference' returns a FormulaReferenceUnion
+# 'latestByTrack' returns a string (implicitly a ReleaseID tuple)
+# 'latestBySemver' returns a string (implicitly a ReleaseID tuple)
+# 'concatBash' returns a string array (implicitly worthy of exec)
+# 'action' returns a FormulaReferenceUnion
+# 'output' returns a FormulaReferenceUnion
+# 'step' returns a FormulaReferenceUnion (it basically applies all its
+#   args to each other and returns the final sum)
+#
+# you can assign any of these parts to a var and reuse them or print them.
+#
+# reference/input/output tend to take string args because paths are
+# involved and those have special chars which make kwargs unusable.
+# everywhere else is happy to use kwargs -- even if that actually
+# restricts the domain you can author in more than the underlying API
+# format requires.
+#
+# it often makes sense to declare all the references that are upstream
+# (e.g. everything except the local wires) towards the top of a file,
+# then just list those var names in the step declarations that use them.
+# this both saves repeating the version selection, AND the path choice.
+
+ref_base   = reference("/",       "ports.timeless.io/base:201801:linux-amd64")
+ref_go     = reference("/app/go", "ports.timeless.io/golang:1.9:linux-amd64")
+ref_demozz = reference("/demozz", latestByTrack("ports.timeless.io/example::linux-amd64", "trackBaz", hitchHandle))
+ref_demoyy = reference("/demoyy", latestBySemver("ports.timeless.io/dubious::linux-amd64", "^10.9~1.4", hitchHandle))
+
+basting(
+	stepFoo=step(
+		ref_base,
+		ref_go,
+		ref_demozz,
+		ref_demoyy,
+		action(concatBash(
+			"mkdir out",
+			"ls -la /app/go | tee > out/records",
+		)),
+		output("/task/out", type=tar)
+	),
+	stepBar=step(
+		ref_base,
+		reference("/woof",   "wire:stepFoo:/task/out"),
+		action(["cat", "/woof/records"]),
+	)
+)
+
+
+
+
+basting_linearPipeline(
+	ref_base, # used in all steps
+	ref_go,   # used in all steps
+	# a linearPipeline generates an entire step/formula for every action
+	action(concatBash(
+		"mkdir out",
+		"ls -la /app/go | tee > out/records",
+	)),
+	# every step automatically gets an output at "/task/out"
+	# and the previous step's output is imported at "/prev"
+	action(
+		["cat", "/woof/records"]
+	),
+)
