@@ -19,7 +19,10 @@ var (
 )
 
 func NewBasting(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (_ sk.Value, err error) {
-	v := Basting{tlapi.Basting{make(map[string]tlapi.BastingStep)}}
+	v := Basting{tlapi.Basting{
+		make(map[string]tlapi.BastingStep),
+		make(map[string]tlapi.FormulaContext),
+	}}
 	switch len(kwargs) {
 	case 0: // pass
 	default:
