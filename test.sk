@@ -65,6 +65,45 @@ batch = new_basting({"steps":{
 print(batch)
 
 
+# Some "standard library" functions for generating fragments of formulas.
+# Nothing special, really.  We can do most of the work in skylark; it's
+# just munging some strings and structures.
+#
+# The idea is that you can just combine all these with '+', then eventually
+# validate the completeness, or compose it into basting (which has slightly
+# different "completeness" requirements until the basting as a whole is
+# completed and bound).  And then you're good to go!
+
+def concatBash(cmds):
+	return ["bash", "-c", "\n".join(cmd)]
+
+def action(fragment):
+	t = type(exec)
+	if t == "string":
+		return formula({
+			"formula":{"action":{
+				"exec": [fragment],
+			}},
+		})
+	if t == "list":
+		return formula({
+			"formula":{"action":{
+				"exec": fragment,
+			}},
+		})
+	if t == "obj":
+		return formula({
+			"formula":{"action":fragment},
+		})
+	throw
+
+def reference(path, importableID):
+	return formula({
+		"formula":{"imports":{
+			path: importableID,
+		}},
+	})
+
 
 # 'reference' returns a FormulaReferenceUnion
 # 'latestByTrack' returns a string (implicitly a ReleaseID tuple)
