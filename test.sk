@@ -30,3 +30,37 @@ f3 = formula({
 	}},
 })
 demo(f1 + f2 + f3)
+
+print("===")
+
+
+
+batch = new_basting({"steps":{
+	"stepFoo": {
+		"imports":{
+			"/":      "ports.timeless.io/base:201801:linux-amd64",
+			"/app/go":"ports.timeless.io/golang:1.9:linux-amd64", # remember, at some even-higher level we probably want to put a func call here that looks up versions.
+		},
+		"formula":{
+			"action":{
+				"exec":["/bin/bash", "-c", "mkdir out && ls -la /app/go | tee > out/records\n"],
+			},
+			"outputs": {
+				"/task/out": {"packtype":"tar"}
+			},
+		},
+	},
+	"stepBar": {
+		"imports":{
+			"/":      "ports.timeless.io/base:201801:linux-amd64",
+			"/woof":  "wire:stepFoo:/task/out",
+		},
+		"formula":{
+			"action":{
+				"exec":["cat", "/woof/records"],
+			},
+		},
+	}
+}})
+print(batch)
+
