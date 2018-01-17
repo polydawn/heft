@@ -75,7 +75,7 @@ print(batch)
 # different "completeness" requirements until the basting as a whole is
 # completed and bound).  And then you're good to go!
 
-def concatBash(cmds): # returns FormulaUnion fragment
+def concatBash(*cmds): # returns FormulaUnion fragment
 	return ["bash", "-c", "\n".join(cmds)]
 
 def action(fragment): # returns FormulaUnion fragment
