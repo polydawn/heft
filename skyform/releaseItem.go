@@ -31,15 +31,20 @@ func NewReleaseItemID(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tu
 	case 2, 3:
 		v := ReleaseItemID{}
 		for _, kw := range kwargs {
-			switch kw[0].String() {
+			key, _ := sk.AsString(kw[0])
+			val, ok := sk.AsString(kw[1])
+			if !ok {
+				return nil, fmt.Errorf("releaseItemID: unexpected keyword arguments -- values must all be strings")
+			}
+			switch key {
 			case "catalog":
-				v.CatalogName = tlapi.CatalogName(kw[1].String())
+				v.CatalogName = tlapi.CatalogName(val)
 			case "version":
-				v.ReleaseName = tlapi.ReleaseName(kw[1].String())
+				v.ReleaseName = tlapi.ReleaseName(val)
 			case "item":
-				v.ItemName = tlapi.ItemName(kw[1].String())
+				v.ItemName = tlapi.ItemName(val)
 			default:
-				return nil, fmt.Errorf("releaseItemID: unexpected keyword arguments -- 'catalog', 'version', and 'item' are the recognized keys")
+				return nil, fmt.Errorf("releaseItemID: unexpected keyword arguments -- %q is not one of ['catalog', 'version', 'item']", kw[0].String())
 			}
 		}
 		if v.CatalogName == "" || v.ItemName == "" {

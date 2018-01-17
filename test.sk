@@ -151,17 +151,12 @@ hitchHandle = None # todo: this is one of the "edge" points that needs magic
 
 ref_base   = reference("/",       "ports.timeless.io/base:201801:linux-amd64")
 ref_go     = reference("/app/go", "ports.timeless.io/golang:1.9:linux-amd64")
-#ref_demozz = reference("/demozz", latestByTrack("ports.timeless.io/example::linux-amd64", "trackBaz", hitchHandle))
-#ref_demoyy = reference("/demoyy", latestBySemver("ports.timeless.io/dubious::linux-amd64", "^10.9~1.4", hitchHandle))
+ref_demozz = reference("/demozz", latestByTrack("ports.timeless.io/example::linux-amd64", "trackBaz", hitchHandle))
+ref_demoyy = reference("/demoyy", latestBySemver("ports.timeless.io/dubious::linux-amd64", "^10.9~1.4", hitchHandle))
 
-#print(ref_demoyy)
+print(latestByTrack("ports.timeless.io/example::linux-amd64", "trackBaz", hitchHandle))
+print(ref_demoyy)
 
-print(
-	action(concatBash(
-		"mkdir out",
-		"ls -la /app/go | tee > out/records",
-	))
-)
 
 
 basting(
