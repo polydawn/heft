@@ -114,6 +114,9 @@ def latestBySemver(catalogAndItem, semverPattern, hitchHandle): # returns Releas
 	tuple = releaseItemID(catalogAndItem)
 	return releaseItemID(catalog=tuple.catalog, version="500", item=tuple.item)
 
+def step(*components):
+	pass
+
 def output(path, **kwargs):
 	return formula({
 		"formula":{"outputs":{
