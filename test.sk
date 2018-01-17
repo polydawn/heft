@@ -187,25 +187,3 @@ batch2 = basting(
 	)
 )
 print(batch2)
-
-print("===")
-
-
-
-
-# todo: this is a draft of a simplified "linear" one, and it probably
-# needs a different constructor name.
-basting(
-	ref_base, # used in all steps
-	ref_go,   # used in all steps
-	# a linearPipeline generates an entire step/formula for every action
-	action(concatBash(
-		"mkdir out",
-		"ls -la /app/go | tee > out/records",
-	)),
-	# every step automatically gets an output at "/task/out"
-	# and the previous step's output is imported at "/prev"
-	action(
-		["cat", "/woof/records"]
-	),
-)
