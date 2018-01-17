@@ -23,13 +23,31 @@ func NewBasting(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (
 		make(map[string]tlapi.BastingStep),
 		make(map[string]tlapi.FormulaContext),
 	}}
+
+	// parse kwargs...
 	switch len(kwargs) {
-	case 0: // pass
-	default:
-		return nil, fmt.Errorf("basting: unexpected keyword arguments")
+	case 0:
+		// punt till later: we should have positional arg
+	default: // we're going to read every one of em as a step name.
+		for _, kw := range kwargs {
+			stepName := kw[0].String()
+			stepUnion, ok := kw[1].(FormulaUnion)
+			if !ok {
+				return nil, fmt.Errorf("basting: expecting kwargs to each be a step definition (which must be a 'formula' type); arg %q was a %s", stepName, kw[1].Type())
+			}
+			v.Basting.Steps[stepName] = tlapi.BastingStep{
+				Imports: stepUnion.Imports,
+				Formula: stepUnion.Formula,
+			}
+			if stepUnion.Context != nil {
+				v.Basting.Contexts[stepName] = *stepUnion.Context
+			}
+		}
 	}
+	// ... or, accept a dict as a positional arg and refmt it.
 	switch args.Len() {
-	case 0: // pass
+	case 0:
+		return nil, fmt.Errorf("basting: missing positional arguments; one string is required (or, use kwargs)")
 	case 1: // take this object as a baseline value
 		vtoker := NewValueTokenizer()
 		vtoker.Bind(args.Index(0))
@@ -40,10 +58,10 @@ func NewBasting(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (
 			umarsh,
 		}
 		err = pump.Run()
+		return v, nil
 	default:
 		return nil, fmt.Errorf("basting: unexpected extra positional arguments; only 1 is valid")
 	}
-	return v, err
 }
 
 func (x Basting) Type() string          { return "Basting" }

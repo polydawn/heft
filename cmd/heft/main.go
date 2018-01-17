@@ -25,7 +25,7 @@ func newGlobals() sk.StringDict {
 			return sk.None, nil
 		}),
 		"formula":       sk.NewBuiltin("formula", skyform.MakeFormulaUnion),
-		"new_basting":   sk.NewBuiltin("basting", skyform.NewBasting),
+		"basting":       sk.NewBuiltin("basting", skyform.NewBasting),
 		"releaseItemID": sk.NewBuiltin("releaseItemID", skyform.NewReleaseItemID),
 	}
 }

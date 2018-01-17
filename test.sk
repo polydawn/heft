@@ -35,7 +35,7 @@ print("===")
 
 
 
-batch = new_basting({"steps":{
+batch = basting({"steps":{
 	"stepFoo": {
 		"imports":{
 			"/":      "ports.timeless.io/base:201801:linux-amd64",
@@ -63,6 +63,7 @@ batch = new_basting({"steps":{
 	}
 }})
 print(batch)
+
 
 
 # Some "standard library" functions for generating fragments of formulas.
@@ -164,8 +165,9 @@ basting(
 
 
 
-
-basting_linearPipeline(
+# todo: this is a draft of a simplified "linear" one, and it probably
+# needs a different constructor name.
+basting(
 	ref_base, # used in all steps
 	ref_go,   # used in all steps
 	# a linearPipeline generates an entire step/formula for every action
