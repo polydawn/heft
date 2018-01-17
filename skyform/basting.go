@@ -46,6 +46,7 @@ func NewBasting(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (
 				v.Basting.Contexts[stepName] = *stepUnion.Context
 			}
 		}
+		return v, nil
 	}
 	// ... or, accept a dict as a positional arg and refmt it.
 	switch args.Len() {

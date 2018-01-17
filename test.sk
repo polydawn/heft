@@ -64,9 +64,9 @@ batch = basting({"steps":{
 }})
 print(batch)
 
-
-
 print("===")
+
+
 
 # Some "standard library" functions for generating fragments of formulas.
 # Nothing special, really.  We can do most of the work in skylark; it's
@@ -121,7 +121,11 @@ def latestBySemver(catalogAndItem, semverPattern, hitchHandle): # returns Releas
 	return releaseItemID(catalog=tuple.catalog, version="500", item=tuple.item)
 
 def step(*components):
-	pass
+	result = components[0]
+	for comp in components[1:]:
+		result += comp
+	#print("gathered: ", result)
+	return result
 
 def output(path, **kwargs):
 	return formula({
@@ -129,6 +133,9 @@ def output(path, **kwargs):
 			path: {"packtype": kwargs['packtype']}
 		}},
 	})
+
+print("(\"std lib\" defined)")
+print("===")
 
 
 # 'reference' returns a FormulaReferenceUnion
@@ -181,6 +188,9 @@ batch2 = basting(
 	)
 )
 print(batch2)
+
+print("===")
+
 
 
 
