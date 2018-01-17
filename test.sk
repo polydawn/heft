@@ -74,10 +74,10 @@ print(batch)
 # different "completeness" requirements until the basting as a whole is
 # completed and bound).  And then you're good to go!
 
-def concatBash(cmds):
+def concatBash(cmds): # returns FormulaUnion fragment
 	return ["bash", "-c", "\n".join(cmd)]
 
-def action(fragment):
+def action(fragment): # returns FormulaUnion fragment
 	t = type(exec)
 	if t == "string":
 		return formula({
@@ -97,12 +97,22 @@ def action(fragment):
 		})
 	throw
 
-def reference(path, importableID):
+def reference(path, importableID): # returns FormulaUnion fragment
 	return formula({
 		"formula":{"imports":{
 			path: importableID,
 		}},
 	})
+
+def latestByTrack(catalogAndItem, trackName, hitchHandle): # returns ReleaseItemID
+	# placeholder: hack in a fixed version string.
+	tuple = releaseItemID(catalogAndItem)
+	return releaseItemID(catalog=tuple.catalog, version="500", item=tuple.item)
+
+def latestBySemver(catalogAndItem, semverPattern, hitchHandle): # returns ReleaseItemID
+	# placeholder: hack in a fixed version string.
+	tuple = releaseItemID(catalogAndItem)
+	return releaseItemID(catalog=tuple.catalog, version="500", item=tuple.item)
 
 
 # 'reference' returns a FormulaReferenceUnion
