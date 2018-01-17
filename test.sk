@@ -98,6 +98,10 @@ def action(fragment): # returns FormulaUnion fragment
 		})
 
 def reference(path, importableID): # returns FormulaUnion fragment
+	if type(importableID) != "ReleaseItemID":
+		importableID = releaseItemID(importableID)
+	if importableID.version == "":
+		pass # help how do i error in skylark
 	return formula({
 		"imports":{
 			path: importableID,
