@@ -75,10 +75,10 @@ print(batch)
 # completed and bound).  And then you're good to go!
 
 def concatBash(cmds): # returns FormulaUnion fragment
-	return ["bash", "-c", "\n".join(cmd)]
+	return ["bash", "-c", "\n".join(cmds)]
 
 def action(fragment): # returns FormulaUnion fragment
-	t = type(exec)
+	t = type(fragment)
 	if t == "string":
 		return formula({
 			"formula":{"action":{
@@ -95,13 +95,12 @@ def action(fragment): # returns FormulaUnion fragment
 		return formula({
 			"formula":{"action":fragment},
 		})
-	throw
 
 def reference(path, importableID): # returns FormulaUnion fragment
 	return formula({
-		"formula":{"imports":{
+		"imports":{
 			path: importableID,
-		}},
+		},
 	})
 
 def latestByTrack(catalogAndItem, trackName, hitchHandle): # returns ReleaseItemID
@@ -136,6 +135,8 @@ def latestBySemver(catalogAndItem, semverPattern, hitchHandle): # returns Releas
 # (e.g. everything except the local wires) towards the top of a file,
 # then just list those var names in the step declarations that use them.
 # this both saves repeating the version selection, AND the path choice.
+
+hitchHandle = None # todo: this is one of the "edge" points that needs magic
 
 ref_base   = reference("/",       "ports.timeless.io/base:201801:linux-amd64")
 ref_go     = reference("/app/go", "ports.timeless.io/golang:1.9:linux-amd64")
