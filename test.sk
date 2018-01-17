@@ -30,3 +30,160 @@ f3 = formula({
 	}},
 })
 demo(f1 + f2 + f3)
+
+print("===")
+
+
+
+batch = basting({"steps":{
+	"stepFoo": {
+		"imports":{
+			"/":      "ports.timeless.io/base:201801:linux-amd64",
+			"/app/go":"ports.timeless.io/golang:1.9:linux-amd64", # remember, at some even-higher level we probably want to put a func call here that looks up versions.
+		},
+		"formula":{
+			"action":{
+				"exec":["/bin/bash", "-c", "mkdir out && ls -la /app/go | tee > out/records\n"],
+			},
+			"outputs": {
+				"/task/out": {"packtype":"tar"}
+			},
+		},
+	},
+	"stepBar": {
+		"imports":{
+			"/":      "ports.timeless.io/base:201801:linux-amd64",
+			"/woof":  "wire:stepFoo:/task/out",
+		},
+		"formula":{
+			"action":{
+				"exec":["cat", "/woof/records"],
+			},
+		},
+	}
+}})
+print(batch)
+
+print("===")
+
+
+
+# Some "standard library" functions for generating fragments of formulas.
+# Nothing special, really.  We can do most of the work in skylark; it's
+# just munging some strings and structures.
+#
+# The idea is that you can just combine all these with '+', then eventually
+# validate the completeness, or compose it into basting (which has slightly
+# different "completeness" requirements until the basting as a whole is
+# completed and bound).  And then you're good to go!
+
+def concatBash(*cmds): # returns FormulaUnion fragment
+	return ["bash", "-c", "\n".join(cmds)]
+
+def action(fragment): # returns FormulaUnion fragment
+	t = type(fragment)
+	if t == "string":
+		return formula({
+			"formula":{"action":{
+				"exec": [fragment],
+			}},
+		})
+	if t == "list":
+		return formula({
+			"formula":{"action":{
+				"exec": fragment,
+			}},
+		})
+	if t == "obj":
+		return formula({
+			"formula":{"action":fragment},
+		})
+
+def reference(path, importableID): # returns FormulaUnion fragment
+	if type(importableID) != "ReleaseItemID":
+		importableID = releaseItemID(importableID)
+	if importableID.version == "":
+		pass # help how do i error in skylark
+	return formula({
+		"imports":{
+			path: importableID,
+		},
+	})
+
+def latestByTrack(catalogAndItem, trackName, hitchHandle): # returns ReleaseItemID
+	# placeholder: hack in a fixed version string.
+	tuple = releaseItemID(catalogAndItem)
+	return releaseItemID(catalog=tuple.catalog, version="500", item=tuple.item)
+
+def latestBySemver(catalogAndItem, semverPattern, hitchHandle): # returns ReleaseItemID
+	# placeholder: hack in a fixed version string.
+	tuple = releaseItemID(catalogAndItem)
+	return releaseItemID(catalog=tuple.catalog, version="500", item=tuple.item)
+
+def step(*components):
+	result = components[0]
+	for comp in components[1:]:
+		result += comp
+	return result
+
+def output(path, **kwargs):
+	return formula({
+		"formula":{"outputs":{
+			path: {"packtype": kwargs['packtype']}
+		}},
+	})
+
+print("(\"std lib\" defined)")
+print("===")
+
+
+# 'reference' returns a FormulaReferenceUnion
+# 'latestByTrack' returns a string (implicitly a ReleaseID tuple)
+# 'latestBySemver' returns a string (implicitly a ReleaseID tuple)
+# 'concatBash' returns a string array (implicitly worthy of exec)
+# 'action' returns a FormulaReferenceUnion
+# 'output' returns a FormulaReferenceUnion
+# 'step' returns a FormulaReferenceUnion (it basically applies all its
+#   args to each other and returns the final sum)
+#
+# you can assign any of these parts to a var and reuse them or print them.
+#
+# reference/input/output tend to take string args because paths are
+# involved and those have special chars which make kwargs unusable.
+# everywhere else is happy to use kwargs -- even if that actually
+# restricts the domain you can author in more than the underlying API
+# format requires.
+#
+# it often makes sense to declare all the references that are upstream
+# (e.g. everything except the local wires) towards the top of a file,
+# then just list those var names in the step declarations that use them.
+# this both saves repeating the version selection, AND the path choice.
+
+hitchHandle = None # todo: this is one of the "edge" points that needs magic
+
+ref_base   = reference("/",       "ports.timeless.io/base:201801:linux-amd64")
+ref_go     = reference("/app/go", "ports.timeless.io/golang:1.9:linux-amd64")
+ref_demozz = reference("/demozz", latestByTrack("ports.timeless.io/example::linux-amd64", "trackBaz", hitchHandle))
+ref_demoyy = reference("/demoyy", latestBySemver("ports.timeless.io/dubious::linux-amd64", "^10.9~1.4", hitchHandle))
+
+
+
+batch2 = basting(
+	stepFoo=step(
+		ref_base,
+		ref_go,
+		ref_demozz,
+		ref_demoyy,
+		action(concatBash(
+			"mkdir out",
+			"ls -la /app/go | tee > out/records",
+		)),
+		output("/task/out", packtype='tar')
+	),
+	stepBar=step(
+		ref_base,
+		reference("/woof",   "wire:stepFoo:/task/out"),
+		action(["cat", "/woof/records"]),
+	)
+)
+print(batch2)
