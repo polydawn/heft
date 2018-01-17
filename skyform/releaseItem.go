@@ -58,7 +58,11 @@ func NewReleaseItemID(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tu
 	case 0:
 		return nil, fmt.Errorf("releaseItemID: missing positional arguments; one string is required (or, use kwargs)")
 	case 1: // parse it
-		v, err := tlapi.ParseReleaseItemID(args[0].String())
+		arg, ok := sk.AsString(args[0])
+		if !ok {
+			return nil, fmt.Errorf("releaseItemID: unexpected positional argument -- must be a string")
+		}
+		v, err := tlapi.ParseReleaseItemID(arg)
 		return ReleaseItemID{v}, err
 	default:
 		return nil, fmt.Errorf("releaseItemID: unexpected extra positional arguments; only 1 is valid")
