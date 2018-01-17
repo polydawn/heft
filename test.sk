@@ -174,7 +174,7 @@ basting(
 			"mkdir out",
 			"ls -la /app/go | tee > out/records",
 		)),
-		output("/task/out", type='tar')
+		output("/task/out", packtype='tar')
 	),
 	stepBar=step(
 		ref_base,
