@@ -124,7 +124,6 @@ def step(*components):
 	result = components[0]
 	for comp in components[1:]:
 		result += comp
-	#print("gathered: ", result)
 	return result
 
 def output(path, **kwargs):
@@ -173,8 +172,8 @@ batch2 = basting(
 	stepFoo=step(
 		ref_base,
 		ref_go,
-		#ref_demozz,
-		#ref_demoyy,
+		ref_demozz,
+		ref_demoyy,
 		action(concatBash(
 			"mkdir out",
 			"ls -la /app/go | tee > out/records",

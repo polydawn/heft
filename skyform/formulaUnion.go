@@ -88,8 +88,7 @@ func (x FormulaUnion) Binary(op syntax.Token, y sk.Value, side sk.Side) (sk.Valu
 	}
 	switch op {
 	case syntax.PLUS:
-		z := FormulaUnion{x.FormulaUnion}
-		z.Formula = x.Formula.Apply(y2.Formula)
+		z := FormulaUnion{x.FormulaUnion.Apply(y2.FormulaUnion)}
 		return z, nil
 	default:
 		return nil, fmt.Errorf("binary op %q not supported on %s", op, x.Type())
