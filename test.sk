@@ -66,6 +66,8 @@ print(batch)
 
 
 
+print("===")
+
 # Some "standard library" functions for generating fragments of formulas.
 # Nothing special, really.  We can do most of the work in skylark; it's
 # just munging some strings and structures.
@@ -158,12 +160,9 @@ ref_go     = reference("/app/go", "ports.timeless.io/golang:1.9:linux-amd64")
 ref_demozz = reference("/demozz", latestByTrack("ports.timeless.io/example::linux-amd64", "trackBaz", hitchHandle))
 ref_demoyy = reference("/demoyy", latestBySemver("ports.timeless.io/dubious::linux-amd64", "^10.9~1.4", hitchHandle))
 
-print(latestByTrack("ports.timeless.io/example::linux-amd64", "trackBaz", hitchHandle))
-print(ref_demoyy)
 
 
-
-basting(
+batch2 = basting(
 	stepFoo=step(
 		ref_base,
 		ref_go,
@@ -181,6 +180,7 @@ basting(
 		action(["cat", "/woof/records"]),
 	)
 )
+print(batch2)
 
 
 
