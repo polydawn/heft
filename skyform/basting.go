@@ -1,9 +1,12 @@
 package skyform
 
 import (
+	"bytes"
 	"fmt"
 
 	sk "github.com/google/skylark"
+	"github.com/polydawn/refmt"
+	"github.com/polydawn/refmt/json"
 	"github.com/polydawn/refmt/obj"
 	"github.com/polydawn/refmt/shared"
 	tlapi "go.polydawn.net/go-timeless-api"
@@ -68,7 +71,7 @@ func (x Basting) Type() string          { return "Basting" }
 func (x Basting) Truth() sk.Bool        { return true }
 func (x Basting) Freeze()               {}                // Freeze is a no-op because we're always a COW structure.
 func (x Basting) Hash() (uint32, error) { return 1, nil } // todo
-func (x Basting) String() string        { return "<Basting...>" }
+func (x Basting) String() string        { return "<Basting:" + x.toJsonString() + ">" }
 
 func (x Basting) Attr(name string) (sk.Value, error) {
 	switch name {
@@ -93,4 +96,12 @@ func (x Basting) Attr(name string) (sk.Value, error) {
 
 func (x Basting) AttrNames() []string {
 	return []string{}
+}
+
+func (x Basting) toJsonString() string {
+	var buf bytes.Buffer
+	if err := refmt.NewMarshallerAtlased(json.EncodeOptions{}, &buf, tlapi.HitchAtlas).Marshal(x.Basting); err != nil {
+		panic(err)
+	}
+	return buf.String()
 }
