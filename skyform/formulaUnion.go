@@ -54,7 +54,7 @@ func (s FormulaUnion) Type() string          { return "FormulaUnion" }
 func (s FormulaUnion) Truth() sk.Bool        { return true }
 func (s FormulaUnion) Freeze()               {}                // Freeze is a no-op because we're always a COW structure.
 func (s FormulaUnion) Hash() (uint32, error) { return 1, nil } // todo
-func (s FormulaUnion) String() string        { return "<FormulaUnion...>" }
+func (s FormulaUnion) String() string        { return "<FormulaUnion:" + s.toJsonString() + ">" }
 
 func (s FormulaUnion) Attr(name string) (sk.Value, error) {
 	switch name {
@@ -94,4 +94,12 @@ func (x FormulaUnion) Binary(op syntax.Token, y sk.Value, side sk.Side) (sk.Valu
 	default:
 		return nil, fmt.Errorf("binary op %q not supported on %s", op, x.Type())
 	}
+}
+
+func (x FormulaUnion) toJsonString() string {
+	var buf bytes.Buffer
+	if err := refmt.NewMarshallerAtlased(json.EncodeOptions{}, &buf, tlapi.RepeatrAtlas).Marshal(x.FormulaUnion); err != nil {
+		panic(err)
+	}
+	return buf.String()
 }
