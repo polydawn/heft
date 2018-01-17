@@ -7,6 +7,13 @@ import (
 	. "github.com/polydawn/refmt/tok"
 )
 
+// Implement this on your custom type if you want them to be easily
+// refmt'able if found deep in the middle of other skylark structures.
+type Valuable interface {
+	// Convert self back to the simplest skylark primitive possible.
+	asValue() sk.Value
+}
+
 type valueTokenizer struct {
 	stack   []decoderStep // When empty, and step returns done, all done.
 	current decoderStep   // Shortcut to end of stack.
@@ -117,6 +124,9 @@ func (d *valueTokenizer) step(tokenSlot *Token) (done bool, err error) {
 				return d.step(tokenSlot)
 			}
 		}
+	case Valuable:
+		d.current.val = v.asValue()
+		return d.step(tokenSlot)
 	default:
 		// function, builtin_function_or_method, set, and all user-defined types.
 		return true, fmt.Errorf("cannot convert %s to JSON", v.Type())

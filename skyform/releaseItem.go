@@ -65,6 +65,8 @@ func NewReleaseItemID(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tu
 	}
 }
 
+func (x ReleaseItemID) asValue() sk.Value { return sk.String(x.String()) }
+
 func (x ReleaseItemID) Type() string          { return "ReleaseItemID" }
 func (x ReleaseItemID) Truth() sk.Bool        { return true }
 func (x ReleaseItemID) Freeze()               {}                // Freeze is a no-op because we're always a COW structure.
