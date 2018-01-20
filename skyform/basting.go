@@ -2,6 +2,7 @@ package skyform
 
 import (
 	"bytes"
+	stdjson "encoding/json"
 	"fmt"
 
 	sk "github.com/google/skylark"
@@ -72,7 +73,7 @@ func (x Basting) Type() string          { return "Basting" }
 func (x Basting) Truth() sk.Bool        { return true }
 func (x Basting) Freeze()               {}                // Freeze is a no-op because we're always a COW structure.
 func (x Basting) Hash() (uint32, error) { return 1, nil } // todo
-func (x Basting) String() string        { return "<Basting:" + x.toJsonString() + ">" }
+func (x Basting) String() string        { return "basting(" + x.toJsonString() + ")" }
 
 func (x Basting) Attr(name string) (sk.Value, error) {
 	switch name {
@@ -104,5 +105,9 @@ func (x Basting) toJsonString() string {
 	if err := refmt.NewMarshallerAtlased(json.EncodeOptions{}, &buf, tlapi.HitchAtlas).Marshal(x.Basting); err != nil {
 		panic(err)
 	}
-	return buf.String()
+	var buf2 bytes.Buffer
+	if err := stdjson.Indent(&buf2, buf.Bytes(), "", "\t"); err != nil {
+		panic(err)
+	}
+	return buf2.String()
 }
