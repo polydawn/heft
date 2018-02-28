@@ -24,8 +24,9 @@ var (
 
 func NewBasting(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (_ sk.Value, err error) {
 	v := Basting{tlapi.Basting{
-		make(map[string]tlapi.BastingStep),
-		make(map[string]tlapi.FormulaContext),
+		Steps:    make(map[string]tlapi.BastingStep),
+		Exports:  make(map[tlapi.ItemName]tlapi.ReleaseItemID),
+		Contexts: make(map[string]tlapi.FormulaContext),
 	}}
 
 	// parse kwargs...
@@ -35,7 +36,7 @@ func NewBasting(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (
 	default: // we're going to read every one of em as a step name.
 		for _, kw := range kwargs {
 			stepName := kw[0].String()
-			stepUnion, ok := kw[1].(FormulaUnion)
+			stepUnion, ok := kw[1].(FormulaUnion) // FIXME: we should probably accept exports here as well.  and make a nice message on cast fail.
 			if !ok {
 				return nil, fmt.Errorf("basting: expecting kwargs to each be a step definition (which must be a 'formula' type); arg %q was a %s", stepName, kw[1].Type())
 			}
