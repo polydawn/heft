@@ -60,6 +60,9 @@ func (l *Loader) EvalScript(src string) (sk.StringDict, error) {
 		Filename: "__main__", Source: src,
 		Globals: globals,
 	})
+	for name := range newGlobals() {
+		delete(globals, name)
+	}
 	return globals, err
 }
 
@@ -103,6 +106,13 @@ func (l *Loader) load(parentThread *sk.Thread, module string) (sk.StringDict, er
 		Filename: module, Source: src,
 		Globals: globals,
 	})
+
+	// Censor our builtin funcs back out of the results.
+	for name := range newGlobals() {
+		delete(globals, name)
+	}
+
+	// Remember remember the exec of module...
 	l.evaluations[module] = &evaluation{globals, err}
 
 	return globals, err
