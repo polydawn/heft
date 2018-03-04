@@ -54,6 +54,7 @@ type evaluation struct {
 func (l *Loader) EvalScript(src string) (sk.StringDict, error) {
 	thread := &sk.Thread{Load: l.load}
 	globals := newGlobals()
+	l.evaluations = make(map[string]*evaluation)
 	err := sk.Exec(sk.ExecOptions{
 		Thread:   thread,
 		Filename: "__main__", Source: src,
