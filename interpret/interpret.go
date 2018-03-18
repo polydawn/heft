@@ -30,8 +30,7 @@ func newGlobals() sk.StringDict {
 
 func ExecFile(filename string) {
 	thread := &sk.Thread{}
-	globals := newGlobals()
-	if err := sk.ExecFile(thread, filename, nil, globals); err != nil {
+	if _, err := sk.ExecFile(thread, filename, nil, newGlobals()); err != nil {
 		fmt.Fprintf(os.Stderr, "larking: %s\n", err)
 		os.Exit(4)
 	}
@@ -53,12 +52,11 @@ type evaluation struct {
 
 func (l *Loader) EvalScript(src string) (sk.StringDict, error) {
 	thread := &sk.Thread{Load: l.load}
-	globals := newGlobals()
 	l.evaluations = make(map[string]*evaluation)
-	err := sk.Exec(sk.ExecOptions{
+	globals, err := sk.Exec(sk.ExecOptions{
 		Thread:   thread,
 		Filename: "__main__", Source: src,
-		Globals: globals,
+		Predeclared: newGlobals(),
 	})
 	for name := range newGlobals() {
 		delete(globals, name)
@@ -100,17 +98,11 @@ func (l *Loader) load(parentThread *sk.Thread, module string) (sk.StringDict, er
 	// Let's run!
 	//  The `globals` var will be mutated by the exec.
 	thread := &sk.Thread{Load: l.load}
-	globals := make(sk.StringDict)
-	err = sk.Exec(sk.ExecOptions{
+	globals, err := sk.Exec(sk.ExecOptions{
 		Thread:   thread,
 		Filename: module, Source: src,
-		Globals: globals,
+		Predeclared: newGlobals(),
 	})
-
-	// Censor our builtin funcs back out of the results.
-	for name := range newGlobals() {
-		delete(globals, name)
-	}
 
 	// Remember remember the exec of module...
 	l.evaluations[module] = &evaluation{globals, err}
