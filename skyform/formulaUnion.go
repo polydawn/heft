@@ -97,7 +97,7 @@ func (x FormulaUnion) Binary(op syntax.Token, y sk.Value, side sk.Side) (sk.Valu
 
 func (x FormulaUnion) toJsonString() string {
 	var buf bytes.Buffer
-	if err := refmt.NewMarshallerAtlased(json.EncodeOptions{}, &buf, tlapi.RepeatrAtlas).Marshal(x.FormulaUnion); err != nil {
+	if err := refmt.NewMarshallerAtlased(json.EncodeOptions{Line: []byte{'\n'}, Indent: []byte{'\t'}}, &buf, tlapi.RepeatrAtlas).Marshal(x.FormulaUnion); err != nil {
 		panic(err)
 	}
 	return buf.String()

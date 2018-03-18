@@ -58,8 +58,24 @@ func TestFormulaFold(t *testing.T) {
 	globals, err := loader.EvalScript(script)
 	Require(t, err, ShouldEqual, nil)
 	Wish(t, globals, ShouldHaveStringDictKeys, []string{"f1", "f2", "f3", "f123"})
-	Wish(t, globals["f123"].String(), ShouldEqual,
-		`<FormulaUnion:{"formula":{"inputs":{},"action":{"exec":["crash","override"],"env":{"VAR1":"bees","VAR2":"bats"}},"outputs":{}}}>`)
+	Wish(t, globals["f123"].String(), ShouldEqual, Dedent(`
+		<FormulaUnion:{
+			"formula": {
+				"inputs": {},
+				"action": {
+					"exec": [
+						"crash",
+						"override"
+					],
+					"env": {
+						"VAR1": "bees",
+						"VAR2": "bats"
+					}
+				},
+				"outputs": {}
+			}
+		}
+		>`))
 }
 
 // ShouldHaveStringDictKeys operations on `sk.StringDict` as the 'actual'
