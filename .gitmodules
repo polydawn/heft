@@ -7,3 +7,6 @@
 [submodule ".gopath/src/github.com/google/skylark"]
 	path = .gopath/src/github.com/google/skylark
 	url = https://github.com/google/skylark
+[submodule ".gopath/src/github.com/warpfork/go-wish"]
+	path = .gopath/src/github.com/warpfork/go-wish
+	url = https://github.com/warpfork/go-wish
