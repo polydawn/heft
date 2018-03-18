@@ -1,7 +1,6 @@
 package interpret
 
 import (
-	"fmt"
 	"sort"
 	"testing"
 
@@ -13,8 +12,8 @@ func TestHello(t *testing.T) {
 	script := `iamheft()`
 	loader := Loader{}
 	globals, err := loader.EvalScript(script)
-	fmt.Printf(": %#v\n: %#v\n", globals, err)
-	mustGlobalKeys(t, globals, []string{}...)
+	Require(t, err, ShouldEqual, nil)
+	Wish(t, globals, ShouldHaveStringDictKeys, []string{})
 }
 
 func TestModuleHello(t *testing.T) {
@@ -31,8 +30,8 @@ func TestModuleHello(t *testing.T) {
 		fwee()
 	`)
 	globals, err := loader.EvalScript(script)
-	fmt.Printf(": %#v\n: %#v\n", globals, err)
-	mustGlobalKeys(t, globals, "fwee")
+	Require(t, err, ShouldEqual, nil)
+	Wish(t, globals, ShouldHaveStringDictKeys, []string{"fwee"})
 }
 
 func TestFormulaFold(t *testing.T) {
@@ -58,22 +57,21 @@ func TestFormulaFold(t *testing.T) {
 	`)
 	globals, err := loader.EvalScript(script)
 	Require(t, err, ShouldEqual, nil)
-	mustGlobalKeys(t, globals, "f1", "f2", "f3", "f123")
+	Wish(t, globals, ShouldHaveStringDictKeys, []string{"f1", "f2", "f3", "f123"})
 	Wish(t, globals["f123"].String(), ShouldEqual,
 		`<FormulaUnion:{"formula":{"inputs":{},"action":{"exec":["crash","override"],"env":{"VAR1":"bees","VAR2":"bats"}},"outputs":{}}}>`)
 }
 
-func mustGlobalKeys(t *testing.T, globals sk.StringDict, wantKeys ...string) {
-	t.Helper()
+// ShouldHaveStringDictKeys operations on `sk.StringDict` as the 'actual'
+// parameter, and a `[]string` as the 'desire' parameter.
+func ShouldHaveStringDictKeys(actual, desire interface{}) (string, bool) {
+	globals := actual.(sk.StringDict)
+	wantKeys := desire.([]string)
 	keys := make([]string, 0, len(globals))
 	for k := range globals {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 	sort.Strings(wantKeys)
-	keysStr := fmt.Sprintf("%#v", keys)
-	wantKeysStr := fmt.Sprintf("%#v", wantKeys)
-	if wantKeysStr != keysStr {
-		t.Fatalf("want keys: %#v\n got keys: %#v\n", wantKeysStr, keysStr)
-	}
+	return ShouldEqual(keys, wantKeys)
 }
