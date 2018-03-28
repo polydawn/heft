@@ -89,9 +89,15 @@ type CommissionTreeViewer interface {
 	LoadSynthesis(api.CatalogName) (*Hitching, error)
 }
 
-type moduleFilesystem interface {
+// HitchingInterpreter takes a Hitching script and evaluates it, which is
+// expected to yield a single basting.  The interpreter is typically a skylark
+// engine, and likely was constructed with some library loading config; however,
+// `cat` is an equally valid interpreter if we already simply have a basting
+// (and something to this effect is used in the commission tests, so that they
+// can run without any relationship to the skylark parts of heft).
+type HitchingInterpreter interface {
+	// REVIEW um do you really want to load the hitching string first?
+	// won't that kind of preclude cat?
+	// spec out the recursion termination conditions and get back to me.
+	Interpret(Hitching) (*api.Basting, error)
 }
-
-var _ moduleFilesystem = mockFs{}
-
-type mockFs map[string]string
