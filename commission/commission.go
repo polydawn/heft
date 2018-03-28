@@ -15,7 +15,16 @@ import (
 // and hypothetically even more than one version from the same catalog.
 type CommissionGraph map[api.CatalogName]map[api.CatalogName]bool
 
-func commissionRecursively(loader CommissionTreeViewer, startAt api.CatalogName, visited CommissionGraph, backtrace []string) (CommissionGraph, error) {
+type CommissionerCfg struct {
+	HitchingLoader CommissionTreeViewer
+	// todo Interpreter object goes here, interface needed (for mocking too)
+}
+
+func (cfg CommissionerCfg) Commission(startAt api.CatalogName, visited CommissionGraph) (CommissionGraph, error) {
+	return cfg.commission(startAt, visited, []string{})
+}
+
+func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited CommissionGraph, backtrace []string) (CommissionGraph, error) {
 	// First, check for cycles.  If this is in our current walk path already, bad.
 	nBacktrace := len(backtrace)
 	backtrace = append(backtrace, string(startAt))
@@ -31,11 +40,11 @@ func commissionRecursively(loader CommissionTreeViewer, startAt api.CatalogName,
 	}
 
 	// Load up and interpret the hitching script, then note the imports resulting.
-	hitching, err := loader.LoadSynthesis(startAt)
+	hitching, err := cfg.HitchingLoader.LoadSynthesis(startAt)
 	if err != nil {
 		return visited, err
 	}
-	basting, err := commission(*hitching)
+	basting, err := cfg.commissionOne(*hitching)
 	if err != nil {
 		return visited, err
 	}
@@ -47,7 +56,7 @@ func commissionRecursively(loader CommissionTreeViewer, startAt api.CatalogName,
 
 	// We must now recurse through each of these new imports.
 	for imp := range importSet {
-		visited, err = commissionRecursively(loader, imp, visited, backtrace)
+		visited, err = cfg.commission(imp, visited, backtrace)
 		if err != nil {
 			return visited, err
 		}
@@ -59,7 +68,7 @@ func commissionRecursively(loader CommissionTreeViewer, startAt api.CatalogName,
 	return visited, nil
 }
 
-func commission(Hitching) (*api.Basting, error) {
+func (cfg CommissionerCfg) commissionOne(Hitching) (*api.Basting, error) {
 	// TODO invoke interpreter
 	return &api.Basting{}, nil
 }
