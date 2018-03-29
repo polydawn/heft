@@ -50,6 +50,8 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 		return visited, nil // FIXME um pop... wait does that matter
 	case synthesis.Hitching != nil:
 		// pass
+	default:
+		panic("unreachable")
 	}
 	basting, err := cfg.HitchingInterpreter.Interpret(*synthesis.Hitching)
 	if err != nil {
