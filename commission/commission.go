@@ -16,8 +16,8 @@ import (
 type CommissionGraph map[api.CatalogName]map[api.CatalogName]bool
 
 type CommissionerCfg struct {
-	HitchingLoader CommissionTreeViewer
-	// todo Interpreter object goes here, interface needed (for mocking too)
+	HitchingLoader      CommissionTreeViewer
+	HitchingInterpreter HitchingInterpreter
 }
 
 func (cfg CommissionerCfg) Commission(startAt api.CatalogName, visited CommissionGraph) (CommissionGraph, error) {
@@ -40,11 +40,18 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 	}
 
 	// Load up and interpret the hitching script, then note the imports resulting.
-	hitching, err := cfg.HitchingLoader.LoadSynthesis(startAt)
+	synthesis, err := cfg.HitchingLoader.LoadSynthesis(startAt)
 	if err != nil {
 		return visited, err
 	}
-	basting, err := cfg.commissionOne(*hitching)
+	switch {
+	case synthesis.Catalog != nil:
+		visited[startAt] = nil
+		return visited, nil // FIXME um pop... wait does that matter
+	case synthesis.Hitching != nil:
+		// pass
+	}
+	basting, err := cfg.HitchingInterpreter.Interpret(*synthesis.Hitching)
 	if err != nil {
 		return visited, err
 	}
@@ -63,14 +70,9 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 	}
 
 	// Now that all the recursing below us is done, pop our backtrace element.
-	backtrace = backtrace[:len(backtrace)-1]
+	backtrace = backtrace[:len(backtrace)-1] // review um i don't think you actually need this
 
 	return visited, nil
-}
-
-func (cfg CommissionerCfg) commissionOne(Hitching) (*api.Basting, error) {
-	// TODO invoke interpreter
-	return &api.Basting{}, nil
 }
 
 func projectImportSet(basting api.Basting) map[api.CatalogName]bool {
@@ -86,14 +88,18 @@ func projectImportSet(basting api.Basting) map[api.CatalogName]bool {
 type Hitching string // a skylark script
 
 type CommissionTreeViewer interface {
-	LoadSynthesis(api.CatalogName) (*Hitching, error)
+	LoadSynthesis(api.CatalogName) (*CommissionStepUnion, error)
+}
+
+type CommissionStepUnion struct {
+	Hitching *Hitching    // Set if the dir contains a "module.hs"; evaluate with heft.
+	Catalog  *api.Catalog // Set if the dir contains a "catalog.spec"; terminal node.
 }
 
 // HitchingInterpreter takes a Hitching script and evaluates it, which is
 // expected to yield a single basting.  The interpreter is typically a skylark
-// engine, and likely was constructed with some library loading config; however,
-// `cat` is an equally valid interpreter if we already simply have a basting
-// (and something to this effect is used in the commission tests, so that they
+// engine, and likely was constructed with some library loading config
+// (however, other mocks are used in the commission tests, so that they
 // can run without any relationship to the skylark parts of heft).
 type HitchingInterpreter interface {
 	// REVIEW um do you really want to load the hitching string first?
