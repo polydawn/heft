@@ -50,12 +50,15 @@ type evaluation struct {
 	err     error
 }
 
-func (l *Loader) EvalScript(src string) (sk.StringDict, error) {
+func (l *Loader) EvalScript(src string, filename string) (sk.StringDict, error) {
+	if filename == "" {
+		filename = "__main__"
+	}
 	thread := &sk.Thread{Load: l.load}
 	l.evaluations = make(map[string]*evaluation)
 	globals, err := sk.Exec(sk.ExecOptions{
 		Thread:   thread,
-		Filename: "__main__", Source: src,
+		Filename: filename, Source: src,
 		Predeclared: newGlobals(),
 	})
 	return globals, err
