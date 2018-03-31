@@ -80,3 +80,17 @@ func TestHello(t *testing.T) {
 		},
 	})
 }
+
+func TestCycleRejection(t *testing.T) {
+	spore := CommissionerCfg{
+		mockLoader{
+			"foo.org/bar":      hitchingNode("foible.net/edge,foible.net/fwoop"),
+			"foible.net/fwoop": hitchingNode("foible.net/edge,foible.net/feep"),
+			"foible.net/feep":  hitchingNode("foo.org/bar"),
+			"foible.net/edge":  CommissionStepUnion{Catalog: &api.Catalog{Name: "foible.net/edge"}},
+		},
+		mockInterpreter{},
+	}
+	_, err := spore.Commission("foo.org/bar", nil)
+	Wish(t, err, ShouldEqual, fmt.Errorf("cycle found: foo.org/bar -> foible.net/fwoop -> foible.net/feep"))
+}
