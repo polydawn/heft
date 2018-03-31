@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"go.polydawn.net/go-timeless-api"
+	"go.polydawn.net/heft/layout"
 )
 
 type (
@@ -49,7 +50,7 @@ type (
 )
 
 type CommissionerCfg struct {
-	HitchingLoader      CommissionTreeViewer
+	ModuleConfigLoader  layout.Loader
 	HitchingInterpreter HitchingInterpreter
 }
 
@@ -77,21 +78,21 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 	visited[startAt] = &CommissionNode{}
 
 	// Load up all the infos for this module.
-	synthesis, err := cfg.HitchingLoader.LoadSynthesis(startAt)
+	moduleCfg, err := cfg.ModuleConfigLoader.LoadModuleConfig(startAt)
 	if err != nil {
 		return visited, err
 	}
 	// If this node had other existing releases noted, jot down that info.
 	//  It's only interesting if another node references it later, but we can't tell yet.
-	if synthesis.Catalog != nil {
-		visited[startAt].Catalog = *synthesis.Catalog
+	if moduleCfg.Catalog != nil {
+		visited[startAt].Catalog = *moduleCfg.Catalog
 	}
 	// If there's no build instructions to consider, then... that's it, return.
-	if synthesis.Hitching == nil {
+	if moduleCfg.HeftScript == "" {
 		return visited, nil
 	}
 	// Interpret the hitching script, then note the imports resulting.
-	basting, err := cfg.HitchingInterpreter.Interpret(*synthesis.Hitching)
+	basting, err := cfg.HitchingInterpreter.Interpret(moduleCfg.HeftScript)
 	if err != nil {
 		return visited, err
 	}
@@ -122,17 +123,6 @@ func projectImportSet(basting api.Basting) map[api.ReleaseItemID]struct{} {
 	return v
 }
 
-type Hitching string // a skylark script
-
-type CommissionTreeViewer interface {
-	LoadSynthesis(api.CatalogName) (*CommissionStepUnion, error)
-}
-
-type CommissionStepUnion struct {
-	Hitching *Hitching    // Set if the dir contains a "module.hs"; evaluate with heft.
-	Catalog  *api.Catalog // Set if the dir contains a "catalog.spec"; terminal node.
-}
-
 // HitchingInterpreter takes a Hitching script and evaluates it, which is
 // expected to yield a single basting.  The interpreter is typically a skylark
 // engine, and likely was constructed with some library loading config
@@ -142,5 +132,5 @@ type HitchingInterpreter interface {
 	// REVIEW um do you really want to load the hitching string first?
 	// won't that kind of preclude cat?
 	// spec out the recursion termination conditions and get back to me.
-	Interpret(Hitching) (*api.Basting, error)
+	Interpret(string) (*api.Basting, error)
 }

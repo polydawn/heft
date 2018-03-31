@@ -8,25 +8,12 @@ import (
 	. "github.com/warpfork/go-wish"
 
 	"go.polydawn.net/go-timeless-api"
+	"go.polydawn.net/heft/layout"
 )
-
-type mockLoader map[string]CommissionStepUnion
-
-func (m mockLoader) LoadSynthesis(catname api.CatalogName) (*CommissionStepUnion, error) {
-	if u, ok := m[string(catname)]; ok {
-		return &u, nil
-	}
-	return nil, fmt.Errorf("404")
-}
-
-func hitchingNode(content string) CommissionStepUnion {
-	cast := Hitching(content)
-	return CommissionStepUnion{Hitching: &cast}
-}
 
 type mockInterpreter struct{}
 
-func (mockInterpreter) Interpret(script Hitching) (*api.Basting, error) {
+func (mockInterpreter) Interpret(script string) (*api.Basting, error) {
 	// this still needs to select a *releasename*, so
 	//  it will still need to be constructed with a "hitch" view caller.
 	//  actually that should be part of the params on the interface
@@ -60,9 +47,9 @@ func (mockInterpreter) Interpret(script Hitching) (*api.Basting, error) {
 
 func TestHello(t *testing.T) {
 	spore := CommissionerCfg{
-		mockLoader{
-			"foo.org/bar":      hitchingNode("foible.net/fwoop"),
-			"foible.net/fwoop": CommissionStepUnion{Catalog: &api.Catalog{Name: "foible.net/fwoop"}},
+		layout.FixtureLoader{
+			"foo.org/bar":      layout.ModuleConfig{HeftScript: "foible.net/fwoop"},
+			"foible.net/fwoop": layout.ModuleConfig{Catalog: &api.Catalog{Name: "foible.net/fwoop"}},
 		},
 		mockInterpreter{},
 	}
@@ -83,11 +70,11 @@ func TestHello(t *testing.T) {
 
 func TestCycleRejection(t *testing.T) {
 	spore := CommissionerCfg{
-		mockLoader{
-			"foo.org/bar":      hitchingNode("foible.net/edge,foible.net/fwoop"),
-			"foible.net/fwoop": hitchingNode("foible.net/edge,foible.net/feep"),
-			"foible.net/feep":  hitchingNode("foo.org/bar"),
-			"foible.net/edge":  CommissionStepUnion{Catalog: &api.Catalog{Name: "foible.net/edge"}},
+		layout.FixtureLoader{
+			"foo.org/bar":      layout.ModuleConfig{HeftScript: "foible.net/edge,foible.net/fwoop"},
+			"foible.net/fwoop": layout.ModuleConfig{HeftScript: "foible.net/edge,foible.net/feep"},
+			"foible.net/feep":  layout.ModuleConfig{HeftScript: "foo.org/bar"},
+			"foible.net/edge":  layout.ModuleConfig{Catalog: &api.Catalog{Name: "foible.net/edge"}},
 		},
 		mockInterpreter{},
 	}
