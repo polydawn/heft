@@ -109,9 +109,6 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 		}
 	}
 
-	// Now that all the recursing below us is done, pop our backtrace element.
-	backtrace = backtrace[:len(backtrace)-1] // review um i don't think you actually need this
-
 	return visited, nil
 }
 
