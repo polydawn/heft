@@ -69,9 +69,14 @@ func TestHello(t *testing.T) {
 	graph, err := spore.Commission("foo.org/bar", nil)
 	Wish(t, err, ShouldEqual, nil)
 	Wish(t, graph, ShouldEqual, CommissionGraph{
-		"foo.org/bar": map[api.CatalogName]bool{
-			"foible.net/fwoop": true,
+		"foo.org/bar": &CommissionNode{
+			// todo should now have a catalog with 'candidate' release as well
+			CandidateImports: map[api.ReleaseItemID]struct{}{
+				api.ReleaseItemID{"foible.net/fwoop", "v1", ""}: struct{}{}, // todo the v1 here is hax
+			},
 		},
-		"foible.net/fwoop": nil,
+		"foible.net/fwoop": &CommissionNode{
+			Catalog: api.Catalog{Name: "foible.net/fwoop"},
+		},
 	})
 }

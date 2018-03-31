@@ -7,13 +7,46 @@ import (
 	"go.polydawn.net/go-timeless-api"
 )
 
-// CommissionGraph is a set of catalog/project names mapped to the set of
-// catalogs they import.
-//
-// REVIEW: it seems entirely possible we need a {catalog,version} tuple
-// in the set, because it is still allowed to select non-tip releases,
-// and hypothetically even more than one version from the same catalog.
-type CommissionGraph map[api.CatalogName]map[api.CatalogName]bool
+type (
+	// CommissionGraph is a set of catalog/project names mapped to the set of
+	// catalogs they import.  The graph also contains nodes which are purely
+	// reference to existing released data; these have no imports.
+	//
+	// Every CatalogName referenced by a CommissionNode's Imports set must
+	// be present as another node in the CommissionGraph.  The graph is a
+	// DAG; cycles are not permited.
+	CommissionGraph map[api.CatalogName]*CommissionNode
+
+	// CommissionNode for each part of the graph recalls which releases are
+	// available for this node (e.g. a whole Catalog), and if we have build
+	// instructions, it recalls information about that (in which case we're
+	// interested only in its imports, at this scale of planning) and the
+	// Catalog will contain a dummy release named "candidate" to represent
+	// that could-be-built version.
+	CommissionNode struct {
+		// Catalog of known releases for this node.
+		//
+		// If we have synthesis instructions, at one of the releases will be
+		// named "candidate", and will have a dummy hash value until
+		// we actually complete a build for this node.
+		//
+		// The catalog may also contain several other "real" releases,
+		// which already have known hashes and come from previous action.
+		Catalog api.Catalog
+
+		// If set, we have build instructions for how to make new stuff at
+		// this node, and these are the imports doing so requested.
+		// If the ReleaseName in an import is the sentinel value "candidate",
+		// that means we depend on the latest build of that other thing;
+		// any other imports are of existing built things and thus does not
+		// cause any meaningful dependency for execution planning purposes.
+		//
+		// If CandidateImports is nil, it means there's no basting or build
+		// instructions at all for this CatalogName; in this commission,
+		// we're purely using already released waypoints for this node.
+		CandidateImports map[api.ReleaseItemID]struct{}
+	}
+)
 
 type CommissionerCfg struct {
 	HitchingLoader      CommissionTreeViewer
@@ -21,6 +54,9 @@ type CommissionerCfg struct {
 }
 
 func (cfg CommissionerCfg) Commission(startAt api.CatalogName, visited CommissionGraph) (CommissionGraph, error) {
+	if visited == nil {
+		visited = make(CommissionGraph)
+	}
 	return cfg.commission(startAt, visited, []string{})
 }
 
@@ -38,21 +74,23 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 	if _, ok := visited[startAt]; ok {
 		return visited, nil
 	}
+	visited[startAt] = &CommissionNode{}
 
-	// Load up and interpret the hitching script, then note the imports resulting.
+	// Load up all the infos for this module.
 	synthesis, err := cfg.HitchingLoader.LoadSynthesis(startAt)
 	if err != nil {
 		return visited, err
 	}
-	switch {
-	case synthesis.Catalog != nil:
-		visited[startAt] = nil
-		return visited, nil // FIXME um pop... wait does that matter
-	case synthesis.Hitching != nil:
-		// pass
-	default:
-		panic("unreachable")
+	// If this node had other existing releases noted, jot down that info.
+	//  It's only interesting if another node references it later, but we can't tell yet.
+	if synthesis.Catalog != nil {
+		visited[startAt].Catalog = *synthesis.Catalog
 	}
+	// If there's no build instructions to consider, then... that's it, return.
+	if synthesis.Hitching == nil {
+		return visited, nil
+	}
+	// Interpret the hitching script, then note the imports resulting.
 	basting, err := cfg.HitchingInterpreter.Interpret(*synthesis.Hitching)
 	if err != nil {
 		return visited, err
@@ -61,11 +99,11 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 	if visited == nil {
 		visited = make(CommissionGraph)
 	}
-	visited[startAt] = importSet
+	visited[startAt].CandidateImports = importSet
 
 	// We must now recurse through each of these new imports.
 	for imp := range importSet {
-		visited, err = cfg.commission(imp, visited, backtrace)
+		visited, err = cfg.commission(imp.CatalogName, visited, backtrace)
 		if err != nil {
 			return visited, err
 		}
@@ -77,11 +115,11 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 	return visited, nil
 }
 
-func projectImportSet(basting api.Basting) map[api.CatalogName]bool {
-	v := make(map[api.CatalogName]bool)
+func projectImportSet(basting api.Basting) map[api.ReleaseItemID]struct{} {
+	v := make(map[api.ReleaseItemID]struct{})
 	for _, step := range basting.Steps {
 		for _, imp := range step.Imports {
-			v[imp.CatalogName] = true
+			v[imp] = struct{}{}
 		}
 	}
 	return v
