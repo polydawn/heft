@@ -50,8 +50,8 @@ type (
 )
 
 type CommissionerCfg struct {
-	ModuleConfigLoader  layout.Loader
-	HitchingInterpreter HitchingInterpreter
+	ModuleConfigLoader layout.Loader
+	HeftInterpreter    HeftInterpreter
 }
 
 func (cfg CommissionerCfg) Commission(startAt api.CatalogName, visited CommissionGraph) (CommissionGraph, error) {
@@ -92,7 +92,7 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 		return visited, nil
 	}
 	// Interpret the hitching script, then note the imports resulting.
-	basting, err := cfg.HitchingInterpreter.Interpret(moduleCfg.HeftScript)
+	basting, err := cfg.HeftInterpreter.Interpret(startAt, moduleCfg.HeftScript)
 	if err != nil {
 		return visited, err
 	}
@@ -123,14 +123,14 @@ func projectImportSet(basting api.Basting) map[api.ReleaseItemID]struct{} {
 	return v
 }
 
-// HitchingInterpreter takes a Hitching script and evaluates it, which is
+// HeftInterpreter takes a heft script and evaluates it, which is
 // expected to yield a single basting.  The interpreter is typically a skylark
 // engine, and likely was constructed with some library loading config
 // (however, other mocks are used in the commission tests, so that they
 // can run without any relationship to the skylark parts of heft).
-type HitchingInterpreter interface {
-	// REVIEW um do you really want to load the hitching string first?
-	// won't that kind of preclude cat?
-	// spec out the recursion termination conditions and get back to me.
-	Interpret(string) (*api.Basting, error)
+//
+// The module name is usually not used in the interpreter other than for
+// logging and error messages.
+type HeftInterpreter interface {
+	Interpret(module api.CatalogName, script string) (*api.Basting, error)
 }

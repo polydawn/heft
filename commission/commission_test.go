@@ -13,7 +13,7 @@ import (
 
 type mockInterpreter struct{}
 
-func (mockInterpreter) Interpret(script string) (*api.Basting, error) {
+func (mockInterpreter) Interpret(_ api.CatalogName, script string) (*api.Basting, error) {
 	// this still needs to select a *releasename*, so
 	//  it will still need to be constructed with a "hitch" view caller.
 	//  actually that should be part of the params on the interface
