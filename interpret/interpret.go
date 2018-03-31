@@ -58,9 +58,6 @@ func (l *Loader) EvalScript(src string) (sk.StringDict, error) {
 		Filename: "__main__", Source: src,
 		Predeclared: newGlobals(),
 	})
-	for name := range newGlobals() {
-		delete(globals, name)
-	}
 	return globals, err
 }
 
