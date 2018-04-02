@@ -28,7 +28,7 @@ type dingusCfg struct {
 func TestHello(t *testing.T) {
 	dingus := dingusCfg{
 		"test",
-		[]string{"foobar.org/bar"},
+		[]string{"foobar.org/synth"},
 	}
 	Wish(t, dingus.Bonk(), ShouldEqual, nil)
 }

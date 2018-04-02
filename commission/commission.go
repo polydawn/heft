@@ -117,6 +117,11 @@ func projectImportSet(basting api.Basting) map[api.ReleaseItemID]struct{} {
 	v := make(map[api.ReleaseItemID]struct{})
 	for _, step := range basting.Steps {
 		for _, imp := range step.Imports {
+			// Module-local imports are not interesting at the scale of commission.
+			if imp.CatalogName == "wire" {
+				continue
+			}
+			// Keep everything that's not a local wire.
 			v[imp] = struct{}{}
 		}
 	}
