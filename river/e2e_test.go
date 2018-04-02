@@ -74,11 +74,14 @@ func (cfg dingusCfg) Bonk() error {
 		if err != nil {
 			return err
 		}
-
-		// do connectedness check...?  or should we save DAG ordering until the end.
 	}
 
-	// future: dagsort
+	steps, err := commission.OrderSteps(accumulatedGraph)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "total order: %v\n", steps)
+
 	// future: ... evaluate some stuff...?!
 	return nil
 }
