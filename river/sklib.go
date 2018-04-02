@@ -8,10 +8,13 @@ def step(*components):
 		result += comp
 	return result
 
-def concatBash(*cmds): # returns FormulaUnion fragment
+# Convert an array of strings into a "bash -c ${cmds}"-style array
+# suitable for handing to "action(...)".
+def concatBash(*cmds):
 	return ["bash", "-c", "\n".join(cmds)]
 
-def reference(path, importableID): # returns FormulaUnion fragment
+# Yield a FormulaUnion fragment containing imports.
+def reference(path, importableID):
 	if type(importableID) != "ReleaseItemID":
 		importableID = releaseItemID(importableID)
 	if importableID.version == "":
@@ -22,7 +25,8 @@ def reference(path, importableID): # returns FormulaUnion fragment
 		},
 	})
 
-def action(fragment): # returns FormulaUnion fragment
+# Yield a FormulaUnion fragment containing an exec action.
+def action(fragment):
 	t = type(fragment)
 	if t == "string":
 		return formula({
@@ -41,6 +45,7 @@ def action(fragment): # returns FormulaUnion fragment
 			"formula":{"action":fragment},
 		})
 
+# Yield a FormulaUnion fragment containing outputs.
 def output(path, **kwargs):
 	return formula({
 		"formula":{"outputs":{
