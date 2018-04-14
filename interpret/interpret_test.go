@@ -6,11 +6,15 @@ import (
 
 	sk "github.com/google/skylark"
 	. "github.com/warpfork/go-wish"
+
+	"go.polydawn.net/heft/skyform"
 )
 
 func TestHello(t *testing.T) {
 	script := `iamheft()`
-	loader := Interpreter{}
+	loader := Interpreter{
+		ModulePredeclared: skyform.AllBuiltins,
+	}
 	globals, err := loader.EvalScript(script, "")
 	Require(t, err, ShouldEqual, nil)
 	Wish(t, globals, ShouldHaveStringDictKeys, []string{})
@@ -24,6 +28,7 @@ func TestModuleHello(t *testing.T) {
 					print("kek")
 			`),
 		},
+		ModulePredeclared: skyform.AllBuiltins,
 	}
 	script := Dedent(`
 		load ("fwee.sk", "fwee")
@@ -35,7 +40,9 @@ func TestModuleHello(t *testing.T) {
 }
 
 func TestFormulaFold(t *testing.T) {
-	loader := Interpreter{}
+	loader := Interpreter{
+		ModulePredeclared: skyform.AllBuiltins,
+	}
 	script := Dedent(`
 		f1 = formula({
 			"formula":{"action":{

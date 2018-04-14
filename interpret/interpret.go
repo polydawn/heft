@@ -7,30 +7,22 @@ import (
 	"strings"
 
 	sk "github.com/google/skylark"
-
-	"go.polydawn.net/heft/skyform"
 )
-
-// Makes a new globals dict with our favorite custom bits in it.
-func newGlobals() sk.StringDict {
-	return sk.StringDict{
-		"iamheft": sk.NewBuiltin("iamheft", func(thread *sk.Thread, fn *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (sk.Value, error) {
-			if thread.Print != nil {
-				thread.Print(thread, "yes")
-			} else {
-				fmt.Fprintln(os.Stderr, "yes")
-			}
-			return sk.None, nil
-		}),
-		"formula":       sk.NewBuiltin("formula", skyform.MakeFormulaUnion),
-		"basting":       sk.NewBuiltin("basting", skyform.NewBasting),
-		"releaseItemID": sk.NewBuiltin("releaseItemID", skyform.NewReleaseItemID),
-	}
-}
 
 type Interpreter struct {
 	Filesystem string            // set "." for no offset; "" is file load disabled.
 	Psuedofs   map[string]string // map module name to script.  remember keys should end in ".sk" extension.
+
+	// ModulePredeclared is a set of builtins, functions, and values that will be
+	// pre-declared universally: in the main script and any modules loaded.
+	//
+	// You can also add additional pre-declared entities for the main script
+	// when you evaluate it; these will be merged into this set, overriding it,
+	// and will not be provided to any further modules loaded.
+	// (Therefore: if you're going to provide side-effecting or
+	// referentially-opaque functions, consider doing it as a parameter of
+	// your main script eval call; it'll keep them from spreading.)
+	ModulePredeclared sk.StringDict
 
 	// map of module name to results, built as we evaluate.
 	// nil entries are a sentinel value meaning "wip" (and if found, mean "cycle").
@@ -51,7 +43,7 @@ func (l *Interpreter) EvalScript(src string, filename string) (sk.StringDict, er
 	globals, err := sk.Exec(sk.ExecOptions{
 		Thread:   thread,
 		Filename: filename, Source: src,
-		Predeclared: newGlobals(),
+		Predeclared: l.ModulePredeclared,
 	})
 	return globals, err
 }
@@ -93,7 +85,7 @@ func (l *Interpreter) load(parentThread *sk.Thread, module string) (sk.StringDic
 	globals, err := sk.Exec(sk.ExecOptions{
 		Thread:   thread,
 		Filename: module, Source: src,
-		Predeclared: newGlobals(),
+		Predeclared: l.ModulePredeclared,
 	})
 
 	// Remember remember the exec of module...

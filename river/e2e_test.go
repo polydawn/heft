@@ -36,7 +36,10 @@ func TestHello(t *testing.T) {
 type interpreter struct{}
 
 func (interpreter) Interpret(module api.CatalogName, script string) (*api.Basting, error) {
-	voom := &interpret.Interpreter{Psuedofs: LibPsuedofs}
+	voom := &interpret.Interpreter{
+		Psuedofs:          LibPsuedofs,
+		ModulePredeclared: skyform.AllBuiltins,
+	}
 	globals, err := voom.EvalScript(script, string(module))
 	if err != nil {
 		return nil, fmt.Errorf("error generating basting for %q: %s", module, err)
