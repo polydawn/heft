@@ -1,6 +1,6 @@
-package river
+package interpret
 
-var LibPsuedofs = map[string]string{
+var heftLibsPsuedofs = map[string]string{
 	"std.sk": `
 def step(*components):
 	result = components[0]

@@ -1,10 +1,12 @@
 package commission
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"go.polydawn.net/go-timeless-api"
+	"go.polydawn.net/heft/interpret"
 	"go.polydawn.net/heft/layout"
 )
 
@@ -40,13 +42,18 @@ type (
 		// that means we depend on the latest build of that other thing;
 		// any other imports are of existing built things and thus does not
 		// cause any meaningful dependency for execution planning purposes.
+		//
+		// ItemName fields of the import tuple are kept; while they don't
+		// determine anything useful about build orders, for leaf nodes that
+		// we won't be building, they DO hint which wares we might want to
+		// download in advance so we have our whole seed set on hand.
 		CandidateImports map[api.ReleaseItemID]struct{}
 	}
 )
 
 type CommissionerCfg struct {
 	ModuleConfigLoader layout.Loader
-	HeftInterpreter    HeftInterpreter
+	HeftInterpreter    interpret.PlannerEvaluator
 }
 
 func (cfg CommissionerCfg) Commission(startAt api.CatalogName, visited CommissionGraph) (CommissionGraph, error) {
@@ -84,7 +91,7 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 		return visited, fmt.Errorf("cannot find planner script for making candidate releases of %q; commission graph broken.", startAt)
 	}
 	// Interpret the hitching script, then note the imports resulting.
-	basting, err := cfg.HeftInterpreter.Interpret(startAt, moduleCfg.HeftScript)
+	basting, err := cfg.HeftInterpreter.Evaluate(context.TODO(), startAt, moduleCfg.HeftScript, nil /* TODO */)
 	if err != nil {
 		return visited, err
 	}
@@ -124,16 +131,4 @@ func projectImportSet(basting api.Basting) map[api.ReleaseItemID]struct{} {
 		}
 	}
 	return v
-}
-
-// HeftInterpreter takes a heft script and evaluates it, which is
-// expected to yield a single basting.  The interpreter is typically a skylark
-// engine, and likely was constructed with some library loading config
-// (however, other mocks are used in the commission tests, so that they
-// can run without any relationship to the skylark parts of heft).
-//
-// The module name is usually not used in the interpreter other than for
-// logging and error messages.
-type HeftInterpreter interface {
-	Interpret(module api.CatalogName, script string) (*api.Basting, error)
 }

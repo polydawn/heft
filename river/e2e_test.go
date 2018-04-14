@@ -11,7 +11,6 @@ import (
 	"go.polydawn.net/heft/commission"
 	"go.polydawn.net/heft/interpret"
 	"go.polydawn.net/heft/layout"
-	"go.polydawn.net/heft/skyform"
 )
 
 type dingusCfg struct {
@@ -33,33 +32,12 @@ func TestHello(t *testing.T) {
 	Wish(t, dingus.Bonk(), ShouldEqual, nil)
 }
 
-type interpreter struct{}
-
-func (interpreter) Interpret(module api.CatalogName, script string) (*api.Basting, error) {
-	voom := &interpret.Interpreter{
-		Psuedofs:          LibPsuedofs,
-		ModulePredeclared: skyform.AllBuiltins,
-	}
-	globals, err := voom.Eval(script, string(module), nil)
-	if err != nil {
-		return nil, fmt.Errorf("error generating basting for %q: %s", module, err)
-	}
-	x, ok := globals["pipeline"]
-	if !ok {
-		return nil, fmt.Errorf("error generating basting for %q: expect a variable called %q to be exported!", module, "pipeline")
-	}
-	if basting, ok := x.(skyform.Basting); ok {
-		return &basting.Basting, nil
-	}
-	return nil, fmt.Errorf("error generating basting for %q: expect a variable called %q to be a basting object!", module, "pipeline")
-}
-
 func (cfg dingusCfg) Bonk() error {
 	loader := layout.FSLoader{cfg.CommissionBasePath}
 	accumulatedGraph := commission.CommissionGraph{}
 	commissioner := commission.CommissionerCfg{
 		ModuleConfigLoader: loader,
-		HeftInterpreter:    interpreter{},
+		HeftInterpreter:    interpret.NewPlannerEvaluator(),
 	}
 
 	for _, projPattern := range cfg.RequestedProjects {

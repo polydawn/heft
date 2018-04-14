@@ -2,56 +2,22 @@ package commission
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	. "github.com/warpfork/go-wish"
 
 	"go.polydawn.net/go-timeless-api"
+	"go.polydawn.net/heft/interpret"
 	"go.polydawn.net/heft/layout"
 )
-
-type mockInterpreter struct{}
-
-func (mockInterpreter) Interpret(_ api.CatalogName, script string) (*api.Basting, error) {
-	// this still needs to select a *releasename*, so
-	//  it will still need to be constructed with a "hitch" view caller.
-	//  actually that should be part of the params on the interface
-	//   because it's both standard and may chnage behavior from step to step.
-
-	// yes we really should store the releasename in the visit map.
-	//  references to not-candidate aren't going to cause execution; but they
-	//   also shouldn't render the same way in the graphviz.
-	//   (unclear if it should count or not for cyclicy.
-
-	split := strings.Split(string(script), ",")
-	imps := make(map[api.AbsPath]api.ReleaseItemID, len(split))
-	for i, hunk := range split {
-		imp, err := api.ParseReleaseItemID(hunk)
-		if err != nil {
-			panic(err) // your fixture is wrong
-		}
-		imp.ReleaseName = "v1" // todo see above comments about needing catalog viewer
-		imps[api.AbsPath(fmt.Sprintf("/%d", i))] = imp
-	}
-	return &api.Basting{
-		Steps: map[string]api.BastingStep{
-			"astep": {
-				Imports: imps,
-				// a real basting would have formula, etc here, but for
-				//  what we're testing in this package none of that is relevant.
-			},
-		},
-	}, nil
-}
 
 func TestHello(t *testing.T) {
 	spore := CommissionerCfg{
 		layout.FixtureLoader{
-			"foo.org/bar":      layout.ModuleConfig{HeftScript: "foible.net/fwoop"},
+			"foo.org/bar":      layout.ModuleConfig{HeftScript: `pipeline = basting(stepA=formula({"imports":{"/":"foible.net/fwoop:v1:osarch"}}))`},
 			"foible.net/fwoop": layout.ModuleConfig{Catalog: &api.Catalog{Name: "foible.net/fwoop"}},
 		},
-		mockInterpreter{},
+		interpret.NewPlannerEvaluator(),
 	}
 	graph, err := spore.Commission("foo.org/bar", nil)
 	Wish(t, err, ShouldEqual, nil)
@@ -59,7 +25,7 @@ func TestHello(t *testing.T) {
 		"foo.org/bar": &CommissionNode{
 			// todo should now have a catalog with 'candidate' release as well
 			CandidateImports: map[api.ReleaseItemID]struct{}{
-				api.ReleaseItemID{"foible.net/fwoop", "v1", ""}: struct{}{}, // todo the v1 here is hax
+				api.ReleaseItemID{"foible.net/fwoop", "v1", "osarch"}: struct{}{},
 			},
 		},
 	})
@@ -68,15 +34,30 @@ func TestHello(t *testing.T) {
 func TestCycleRejection(t *testing.T) {
 	spore := CommissionerCfg{
 		layout.FixtureLoader{
-			"foo.org/bar":      layout.ModuleConfig{HeftScript: "foible.net/edge,foible.net/fwoop"},
-			"foible.net/fwoop": layout.ModuleConfig{HeftScript: "foible.net/edge,foible.net/feep"},
-			"foible.net/feep":  layout.ModuleConfig{HeftScript: "foo.org/bar"},
+			"foo.org/bar":      layout.ModuleConfig{HeftScript: `pipeline = basting(stepA=formula({"imports":{"/":"foible.net/fwoop:candidate:osarch", "/2": "foible.net/edge:v1:osarch"}}))`},
+			"foible.net/fwoop": layout.ModuleConfig{HeftScript: `pipeline = basting(stepA=formula({"imports":{"/":"foible.net/edge:v1:osarch", "/2": "foible.net/feep:candidate:osarch"}}))`},
+			"foible.net/feep":  layout.ModuleConfig{HeftScript: `pipeline = basting(stepA=formula({"imports":{"/":"foo.org/bar:candidate:osarch"}}))`},
 			"foible.net/edge":  layout.ModuleConfig{Catalog: &api.Catalog{Name: "foible.net/edge"}},
 		},
-		mockInterpreter{},
+		interpret.NewPlannerEvaluator(),
 	}
 	_, err := spore.Commission("foo.org/bar", nil)
-	// FIXME: this test requires replacing the mockInterpreter, because it needs more than one value in releaseName to make the situation possible!
-	_ = err
-	//Wish(t, err, ShouldEqual, fmt.Errorf("cycle found: foo.org/bar -> foible.net/fwoop -> foible.net/feep"))
+	Wish(t, err, ShouldEqual, fmt.Errorf("cycle found: foo.org/bar -> foible.net/fwoop -> foible.net/feep"))
+}
+
+// *exact* same fixture as TestCycleRejection, *except*:
+// in this test, our "cycle" actually depends on a concrete version rather than candidate,
+// which means it's... not a cycle.
+func TestFrakkedCycleAcceptance(t *testing.T) {
+	spore := CommissionerCfg{
+		layout.FixtureLoader{
+			"foo.org/bar":      layout.ModuleConfig{HeftScript: `pipeline = basting(stepA=formula({"imports":{"/":"foible.net/fwoop:candidate:osarch", "/2": "foible.net/edge:v1:osarch"}}))`},
+			"foible.net/fwoop": layout.ModuleConfig{HeftScript: `pipeline = basting(stepA=formula({"imports":{"/":"foible.net/edge:v1:osarch", "/2": "foible.net/feep:candidate:osarch"}}))`},
+			"foible.net/feep":  layout.ModuleConfig{HeftScript: `pipeline = basting(stepA=formula({"imports":{"/":"foo.org/bar:v1:osarch"}}))`},
+			"foible.net/edge":  layout.ModuleConfig{Catalog: &api.Catalog{Name: "foible.net/edge"}},
+		},
+		interpret.NewPlannerEvaluator(),
+	}
+	_, err := spore.Commission("foo.org/bar", nil)
+	Wish(t, err, ShouldEqual, nil)
 }
