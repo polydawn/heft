@@ -10,14 +10,14 @@ import (
 
 func TestHello(t *testing.T) {
 	script := `iamheft()`
-	loader := Loader{}
+	loader := Interpreter{}
 	globals, err := loader.EvalScript(script, "")
 	Require(t, err, ShouldEqual, nil)
 	Wish(t, globals, ShouldHaveStringDictKeys, []string{})
 }
 
 func TestModuleHello(t *testing.T) {
-	loader := Loader{
+	loader := Interpreter{
 		Psuedofs: map[string]string{
 			"fwee.sk": Dedent(`
 				def fwee():
@@ -35,7 +35,7 @@ func TestModuleHello(t *testing.T) {
 }
 
 func TestFormulaFold(t *testing.T) {
-	loader := Loader{}
+	loader := Interpreter{}
 	script := Dedent(`
 		f1 = formula({
 			"formula":{"action":{

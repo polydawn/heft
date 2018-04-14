@@ -36,7 +36,7 @@ func ExecFile(filename string) {
 	}
 }
 
-type Loader struct {
+type Interpreter struct {
 	Filesystem string            // set "." for no offset; "" is file load disabled.
 	Psuedofs   map[string]string // map module name to script.  remember keys should end in ".sk" extension.
 
@@ -50,7 +50,7 @@ type evaluation struct {
 	err     error
 }
 
-func (l *Loader) EvalScript(src string, filename string) (sk.StringDict, error) {
+func (l *Interpreter) EvalScript(src string, filename string) (sk.StringDict, error) {
 	if filename == "" {
 		filename = "__main__"
 	}
@@ -65,7 +65,7 @@ func (l *Loader) EvalScript(src string, filename string) (sk.StringDict, error) 
 }
 
 // per sk.Thread#Load signature.
-func (l *Loader) load(parentThread *sk.Thread, module string) (sk.StringDict, error) {
+func (l *Interpreter) load(parentThread *sk.Thread, module string) (sk.StringDict, error) {
 	// Normalize the module path/name.
 	//  Module names are roughly paths, but we don't allow them to up-dir,
 	//  and they always end in ".sk" extension for consistency.
@@ -117,7 +117,7 @@ func (l *Loader) load(parentThread *sk.Thread, module string) (sk.StringDict, er
 // If a file reader is returned, it's not particularly easy to close it;
 // we consider it fine to disregard this leakage, as no interpreter should be
 // living long enough individually for this to become problematic.
-func (l *Loader) getSource(path string) (interface{}, error) {
+func (l *Interpreter) getSource(path string) (interface{}, error) {
 	// Check in-memory psuedo-fs first.
 	if src, ok := l.Psuedofs[path]; ok {
 		return src, nil
