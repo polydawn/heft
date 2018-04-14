@@ -82,11 +82,6 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 	if err != nil {
 		return visited, err
 	}
-	// If this node had other existing releases noted, jot down that info.
-	//  It's only interesting if another node references it later, but we can't tell yet.
-	if moduleCfg.Catalog != nil {
-		visited[startAt].Catalog = *moduleCfg.Catalog
-	}
 	// If there's no build instructions to consider, then... that's it, return.
 	if moduleCfg.HeftScript == "" {
 		return visited, nil
