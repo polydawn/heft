@@ -34,18 +34,45 @@ type evaluation struct {
 	err     error
 }
 
-func (l *Interpreter) EvalScript(src string, filename string) (sk.StringDict, error) {
+// Eval evaluates a "main" script.
+//
+// The filename parameter is optional and used only for logs and error messages.
+//
+// Additional predeclared values can be provided; these will be merged with the
+// set of ModulePredeclared configured in the interpreter as a whole and made
+// available to this "main" script (but not available to any subsequently
+// loaded modules).
+//
+// Any modules loaded by `load` in the "main" script (or subsequently loaded
+// recursively by other modules) will be memoized by the interpreter, but
+// this "main" script itself is never memoized.
+func (l *Interpreter) Eval(src string, filename string, additionalPredeclared sk.StringDict) (sk.StringDict, error) {
 	if filename == "" {
 		filename = "__main__"
 	}
+	if l.evaluations == nil {
+		l.evaluations = make(map[string]*evaluation)
+	}
 	thread := &sk.Thread{Load: l.load}
-	l.evaluations = make(map[string]*evaluation)
+	predeclared := mergeStringDict(l.ModulePredeclared, additionalPredeclared)
 	globals, err := sk.Exec(sk.ExecOptions{
 		Thread:   thread,
 		Filename: filename, Source: src,
-		Predeclared: l.ModulePredeclared,
+		Predeclared: predeclared,
 	})
 	return globals, err
+}
+
+// 'b' dominates
+func mergeStringDict(a, b sk.StringDict) (c sk.StringDict) {
+	c = make(sk.StringDict, len(a)+len(b))
+	for k, v := range a {
+		c[k] = v
+	}
+	for k, v := range b {
+		c[k] = v
+	}
+	return
 }
 
 // per sk.Thread#Load signature.

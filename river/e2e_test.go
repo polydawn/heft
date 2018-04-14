@@ -40,7 +40,7 @@ func (interpreter) Interpret(module api.CatalogName, script string) (*api.Bastin
 		Psuedofs:          LibPsuedofs,
 		ModulePredeclared: skyform.AllBuiltins,
 	}
-	globals, err := voom.EvalScript(script, string(module))
+	globals, err := voom.Eval(script, string(module), nil)
 	if err != nil {
 		return nil, fmt.Errorf("error generating basting for %q: %s", module, err)
 	}

@@ -15,7 +15,7 @@ func TestHello(t *testing.T) {
 	loader := Interpreter{
 		ModulePredeclared: skyform.AllBuiltins,
 	}
-	globals, err := loader.EvalScript(script, "")
+	globals, err := loader.Eval(script, "", sk.StringDict{})
 	Require(t, err, ShouldEqual, nil)
 	Wish(t, globals, ShouldHaveStringDictKeys, []string{})
 }
@@ -34,7 +34,7 @@ func TestModuleHello(t *testing.T) {
 		load ("fwee.sk", "fwee")
 		fwee()
 	`)
-	globals, err := loader.EvalScript(script, "")
+	globals, err := loader.Eval(script, "", sk.StringDict{})
 	Require(t, err, ShouldEqual, nil)
 	Wish(t, globals, ShouldHaveStringDictKeys, []string{"fwee"})
 }
@@ -62,7 +62,7 @@ func TestFormulaFold(t *testing.T) {
 		})
 		f123=f1 + f2 + f3
 	`)
-	globals, err := loader.EvalScript(script, "")
+	globals, err := loader.Eval(script, "", sk.StringDict{})
 	Require(t, err, ShouldEqual, nil)
 	Wish(t, globals, ShouldHaveStringDictKeys, []string{"f1", "f2", "f3", "f123"})
 	Wish(t, globals["f123"].String(), ShouldEqual, Dedent(`
