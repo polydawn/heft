@@ -64,9 +64,15 @@ func orderSteps_visit(
 			if edge.CatalogName == "wire" {
 				panic("'wire' is not a valid intra-module import in commission graph")
 			}
+			// Only "candidate" releases mean we need to recurse to build them;
+			//  other edges are things we expect as seed set data, and won't build.
+			if edge.ReleaseName != "candidate" {
+				continue
+			}
+			// Ok, for candidate releases, we've got a real build dependency edge:
 			link := edge.CatalogName
 			if _, ok := graph[link]; !ok {
-				return fmt.Errorf("invalid import: %q imports non-existent %q", node, link)
+				return fmt.Errorf("invalid commission import: %q imports %q, which has no build plan", node, link)
 			}
 			edges = append(edges, link)
 		}

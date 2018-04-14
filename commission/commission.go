@@ -18,33 +18,28 @@ type (
 	// DAG; cycles are not permited.
 	CommissionGraph map[api.CatalogName]*CommissionNode
 
-	// CommissionNode for each part of the graph recalls which releases are
-	// available for this node (e.g. a whole Catalog), and if we have build
-	// instructions, it recalls information about that (in which case we're
-	// interested only in its imports, at this scale of planning) and the
-	// Catalog will contain a dummy release named "candidate" to represent
-	// that could-be-built version.
+	// CommissionNode describes an updatable, buildable node in our graph:
+	// something we have pipeline generator scripts for, and can evaluate to
+	// produce new build plan snapshots with updated releases of its imports.
+	//
+	// Since commissioning is just about figuring out the graph of dependent
+	// builds in a large system, we really only bother to remember the big
+	// picture topological information, namely imports.
+	// (Despite the fact we had to invoke a planning script to determine those
+	// imports, we need not recall the entire basting, because we assume the
+	// planner will behave deterministically; thus we may either regenerate or
+	// memoize it without loss of generality.
+	// Similarly, though many commission nodes may point to one catalogName
+	// which is only full of existing releases and has no planner script, thus
+	// is not a CommissionNode itself, the loading and caching of that is
+	// handled at a lower level than the commissioning logic.)
 	CommissionNode struct {
-		// Catalog of known releases for this node.
-		//
-		// If we have synthesis instructions, at one of the releases will be
-		// named "candidate", and will have a dummy hash value until
-		// we actually complete a build for this node.
-		//
-		// The catalog may also contain several other "real" releases,
-		// which already have known hashes and come from previous action.
-		Catalog api.Catalog
-
 		// If set, we have build instructions for how to make new stuff at
 		// this node, and these are the imports doing so requested.
 		// If the ReleaseName in an import is the sentinel value "candidate",
 		// that means we depend on the latest build of that other thing;
 		// any other imports are of existing built things and thus does not
 		// cause any meaningful dependency for execution planning purposes.
-		//
-		// If CandidateImports is nil, it means there's no basting or build
-		// instructions at all for this CatalogName; in this commission,
-		// we're purely using already released waypoints for this node.
 		CandidateImports map[api.ReleaseItemID]struct{}
 	}
 )
@@ -82,9 +77,11 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 	if err != nil {
 		return visited, err
 	}
-	// If there's no build instructions to consider, then... that's it, return.
+	// If we're here, we expected a commission node.  If there's no planner
+	//  script to evaluate, we're in trouble.
+	//  (Also, the layout.Loader shouldn't have told us a candidate is possible.)
 	if moduleCfg.HeftScript == "" {
-		return visited, nil
+		return visited, fmt.Errorf("cannot find planner script for making candidate releases of %q; commission graph broken.", startAt)
 	}
 	// Interpret the hitching script, then note the imports resulting.
 	basting, err := cfg.HeftInterpreter.Interpret(startAt, moduleCfg.HeftScript)
@@ -97,8 +94,14 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 	}
 	visited[startAt].CandidateImports = importSet
 
-	// We must now recurse through each of these new imports.
+	// Review each of the imports.
+	//  Any of them where a "candidate" version was selected is something
+	//  we now need to recurse through, figuring out what it in turn needs
+	//  commissioned so that we can build it.
 	for imp := range importSet {
+		if imp.ReleaseName != "candidate" {
+			continue
+		}
 		visited, err = cfg.commission(imp.CatalogName, visited, backtrace)
 		if err != nil {
 			return visited, err
