@@ -28,14 +28,6 @@ func newGlobals() sk.StringDict {
 	}
 }
 
-func ExecFile(filename string) {
-	thread := &sk.Thread{}
-	if _, err := sk.ExecFile(thread, filename, nil, newGlobals()); err != nil {
-		fmt.Fprintf(os.Stderr, "larking: %s\n", err)
-		os.Exit(4)
-	}
-}
-
 type Interpreter struct {
 	Filesystem string            // set "." for no offset; "" is file load disabled.
 	Psuedofs   map[string]string // map module name to script.  remember keys should end in ".sk" extension.
