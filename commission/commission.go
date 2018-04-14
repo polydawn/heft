@@ -46,6 +46,10 @@ type (
 		// instructions at all for this CatalogName; in this commission,
 		// we're purely using already released waypoints for this node.
 		CandidateImports map[api.ReleaseItemID]struct{}
+
+		// `DrawHints`?  Explicitly labeling crazy-high-degree nodes like gcc
+		// seems like it might be a valid thing to do, so that it keeps a
+		// consistent appearance even when drawing fairly regional selections.
 	}
 )
 
@@ -92,6 +96,7 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 		return visited, nil
 	}
 	// Interpret the hitching script, then note the imports resulting.
+	// TODO need to provide the interpreter with the fingerTool.  (could provide it at interpreter build/cfg time, but functional sounds appealing for some reason.)
 	basting, err := cfg.HeftInterpreter.Interpret(startAt, moduleCfg.HeftScript)
 	if err != nil {
 		return visited, err
@@ -103,6 +108,10 @@ func (cfg CommissionerCfg) commission(startAt api.CatalogName, visited Commissio
 	visited[startAt].CandidateImports = importSet
 
 	// We must now recurse through each of these new imports.
+	//  REVIEW: decide what you actually want to store...??  we will certainly *draw* nodes in the graphviz for each concrete/non-candidate import.
+	//   and it'd be moderately irritating to need to walk the whole graph again to accumulate those leaf-field infos.
+	//   That graph is going to have subgraph regions for bastings (if you draw high-res) and subgraphs for catalogs (so each release has a "row").
+	//   You're gonna end up doing some preprocessing to pick all the line destinations (percent offsets for nice renderings, etc -- requires lookahead to next node to compute its degree).
 	for imp := range importSet {
 		visited, err = cfg.commission(imp.CatalogName, visited, backtrace)
 		if err != nil {
