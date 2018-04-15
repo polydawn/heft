@@ -29,5 +29,13 @@ func (cfg Config) ViewCatalog(
 	if err != nil {
 		return nil, err
 	}
+	catalog := moduleInfo.Catalog
+	if moduleInfo.HeftScript != "" {
+		candidateRelease := api.ReleaseEntry{
+			Name:  "candidate",
+			Items: nil, // future: some selection funcs will probably want to know what item names are coming!
+		}
+		catalog.Releases = append([]api.ReleaseEntry{candidateRelease}, catalog.Releases...)
+	}
 	return moduleInfo.Catalog, nil
 }
