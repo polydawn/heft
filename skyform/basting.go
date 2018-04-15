@@ -53,7 +53,7 @@ func NewBasting(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (
 	// ... or, accept a dict as a positional arg and refmt it.
 	switch args.Len() {
 	case 0:
-		return nil, fmt.Errorf("basting: missing positional arguments; one string is required (or, use kwargs)")
+		return nil, fmt.Errorf("basting: missing positional arguments; one dict is required (or, use kwargs)")
 	case 1: // take this object as a baseline value
 		vtoker := NewValueTokenizer()
 		vtoker.Bind(args.Index(0))
@@ -63,8 +63,7 @@ func NewBasting(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (
 			vtoker,
 			umarsh,
 		}
-		err = pump.Run()
-		return v, nil
+		return v, pump.Run()
 	default:
 		return nil, fmt.Errorf("basting: unexpected extra positional arguments; only 1 is valid")
 	}
