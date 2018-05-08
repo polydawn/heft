@@ -11,7 +11,7 @@ def step(*components):
 # Convert an array of strings into a "bash -c ${cmds}"-style array
 # suitable for handing to "action(...)".
 def concatBash(*cmds):
-	return ["bash", "-c", "\n".join(cmds)]
+	return ["/bin/bash", "-c", "\n".join(cmds)]
 
 # Yield a FormulaUnion fragment containing imports.
 def reference(path, importableID):

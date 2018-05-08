@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	sk "github.com/google/skylark"
+
 	"go.polydawn.net/go-timeless-api"
 	"go.polydawn.net/go-timeless-api/hitch"
 	"go.polydawn.net/heft/skyform"
@@ -63,7 +65,9 @@ func (pe plannerEvaluator) Evaluate(
 	globals, err := pe.Interpreter.Eval(
 		plannerScript,
 		string(catalogName),
-		nil, // TODO: hitch view injection goes here!
+		sk.StringDict{
+			"hitch": skyform.HitchSingleton(hitchViewCatalogTool),
+		},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error generating basting for %q: %s", catalogName, err)

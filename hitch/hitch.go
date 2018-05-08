@@ -19,6 +19,8 @@ type Config struct {
 	// Since it's also loading a commissioning script, this gives us more than
 	// we strictly need for our role as a hitch viewer, but that's alright.
 	layout.Loader
+
+	builtCandidates map[api.CatalogName]map[api.ItemName]api.WareID
 }
 
 func (cfg Config) ViewCatalog(
