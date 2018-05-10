@@ -35,6 +35,9 @@ func MakeFormulaUnion(_ *sk.Thread, _ *sk.Builtin, args sk.Tuple, kwargs []sk.Tu
 			umarsh,
 		}
 		err = pump.Run()
+		if err != nil {
+			err = fmt.Errorf("formula: could not map object into formula: %s", err)
+		}
 	default:
 		return nil, fmt.Errorf("formula: unexpected extra positional arguments; only 1 is valid")
 	}

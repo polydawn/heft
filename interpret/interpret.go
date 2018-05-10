@@ -7,38 +7,22 @@ import (
 	"strings"
 
 	sk "github.com/google/skylark"
-
-	"go.polydawn.net/heft/skyform"
 )
 
-// Makes a new globals dict with our favorite custom bits in it.
-func newGlobals() sk.StringDict {
-	return sk.StringDict{
-		"iamheft": sk.NewBuiltin("iamheft", func(thread *sk.Thread, fn *sk.Builtin, args sk.Tuple, kwargs []sk.Tuple) (sk.Value, error) {
-			if thread.Print != nil {
-				thread.Print(thread, "yes")
-			} else {
-				fmt.Fprintln(os.Stderr, "yes")
-			}
-			return sk.None, nil
-		}),
-		"formula":       sk.NewBuiltin("formula", skyform.MakeFormulaUnion),
-		"basting":       sk.NewBuiltin("basting", skyform.NewBasting),
-		"releaseItemID": sk.NewBuiltin("releaseItemID", skyform.NewReleaseItemID),
-	}
-}
-
-func ExecFile(filename string) {
-	thread := &sk.Thread{}
-	if _, err := sk.ExecFile(thread, filename, nil, newGlobals()); err != nil {
-		fmt.Fprintf(os.Stderr, "larking: %s\n", err)
-		os.Exit(4)
-	}
-}
-
-type Loader struct {
+type Interpreter struct {
 	Filesystem string            // set "." for no offset; "" is file load disabled.
 	Psuedofs   map[string]string // map module name to script.  remember keys should end in ".sk" extension.
+
+	// ModulePredeclared is a set of builtins, functions, and values that will be
+	// pre-declared universally: in the main script and any modules loaded.
+	//
+	// You can also add additional pre-declared entities for the main script
+	// when you evaluate it; these will be merged into this set, overriding it,
+	// and will not be provided to any further modules loaded.
+	// (Therefore: if you're going to provide side-effecting or
+	// referentially-opaque functions, consider doing it as a parameter of
+	// your main script eval call; it'll keep them from spreading.)
+	ModulePredeclared sk.StringDict
 
 	// map of module name to results, built as we evaluate.
 	// nil entries are a sentinel value meaning "wip" (and if found, mean "cycle").
@@ -50,22 +34,49 @@ type evaluation struct {
 	err     error
 }
 
-func (l *Loader) EvalScript(src string) (sk.StringDict, error) {
+// Eval evaluates a "main" script.
+//
+// The filename parameter is optional and used only for logs and error messages.
+//
+// Additional predeclared values can be provided; these will be merged with the
+// set of ModulePredeclared configured in the interpreter as a whole and made
+// available to this "main" script (but not available to any subsequently
+// loaded modules).
+//
+// Any modules loaded by `load` in the "main" script (or subsequently loaded
+// recursively by other modules) will be memoized by the interpreter, but
+// this "main" script itself is never memoized.
+func (l *Interpreter) Eval(src string, filename string, additionalPredeclared sk.StringDict) (sk.StringDict, error) {
+	if filename == "" {
+		filename = "__main__"
+	}
+	if l.evaluations == nil {
+		l.evaluations = make(map[string]*evaluation)
+	}
 	thread := &sk.Thread{Load: l.load}
-	l.evaluations = make(map[string]*evaluation)
+	predeclared := mergeStringDict(l.ModulePredeclared, additionalPredeclared)
 	globals, err := sk.Exec(sk.ExecOptions{
 		Thread:   thread,
-		Filename: "__main__", Source: src,
-		Predeclared: newGlobals(),
+		Filename: filename, Source: src,
+		Predeclared: predeclared,
 	})
-	for name := range newGlobals() {
-		delete(globals, name)
-	}
 	return globals, err
 }
 
+// 'b' dominates
+func mergeStringDict(a, b sk.StringDict) (c sk.StringDict) {
+	c = make(sk.StringDict, len(a)+len(b))
+	for k, v := range a {
+		c[k] = v
+	}
+	for k, v := range b {
+		c[k] = v
+	}
+	return
+}
+
 // per sk.Thread#Load signature.
-func (l *Loader) load(parentThread *sk.Thread, module string) (sk.StringDict, error) {
+func (l *Interpreter) load(parentThread *sk.Thread, module string) (sk.StringDict, error) {
 	// Normalize the module path/name.
 	//  Module names are roughly paths, but we don't allow them to up-dir,
 	//  and they always end in ".sk" extension for consistency.
@@ -101,7 +112,7 @@ func (l *Loader) load(parentThread *sk.Thread, module string) (sk.StringDict, er
 	globals, err := sk.Exec(sk.ExecOptions{
 		Thread:   thread,
 		Filename: module, Source: src,
-		Predeclared: newGlobals(),
+		Predeclared: l.ModulePredeclared,
 	})
 
 	// Remember remember the exec of module...
@@ -117,7 +128,7 @@ func (l *Loader) load(parentThread *sk.Thread, module string) (sk.StringDict, er
 // If a file reader is returned, it's not particularly easy to close it;
 // we consider it fine to disregard this leakage, as no interpreter should be
 // living long enough individually for this to become problematic.
-func (l *Loader) getSource(path string) (interface{}, error) {
+func (l *Interpreter) getSource(path string) (interface{}, error) {
 	// Check in-memory psuedo-fs first.
 	if src, ok := l.Psuedofs[path]; ok {
 		return src, nil

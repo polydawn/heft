@@ -6,36 +6,43 @@ import (
 
 	sk "github.com/google/skylark"
 	. "github.com/warpfork/go-wish"
+
+	"go.polydawn.net/heft/skyform"
 )
 
 func TestHello(t *testing.T) {
 	script := `iamheft()`
-	loader := Loader{}
-	globals, err := loader.EvalScript(script)
+	loader := Interpreter{
+		ModulePredeclared: skyform.AllBuiltins,
+	}
+	globals, err := loader.Eval(script, "", sk.StringDict{})
 	Require(t, err, ShouldEqual, nil)
 	Wish(t, globals, ShouldHaveStringDictKeys, []string{})
 }
 
 func TestModuleHello(t *testing.T) {
-	loader := Loader{
+	loader := Interpreter{
 		Psuedofs: map[string]string{
 			"fwee.sk": Dedent(`
 				def fwee():
 					print("kek")
 			`),
 		},
+		ModulePredeclared: skyform.AllBuiltins,
 	}
 	script := Dedent(`
 		load ("fwee.sk", "fwee")
 		fwee()
 	`)
-	globals, err := loader.EvalScript(script)
+	globals, err := loader.Eval(script, "", sk.StringDict{})
 	Require(t, err, ShouldEqual, nil)
 	Wish(t, globals, ShouldHaveStringDictKeys, []string{"fwee"})
 }
 
 func TestFormulaFold(t *testing.T) {
-	loader := Loader{}
+	loader := Interpreter{
+		ModulePredeclared: skyform.AllBuiltins,
+	}
 	script := Dedent(`
 		f1 = formula({
 			"formula":{"action":{
@@ -55,7 +62,7 @@ func TestFormulaFold(t *testing.T) {
 		})
 		f123=f1 + f2 + f3
 	`)
-	globals, err := loader.EvalScript(script)
+	globals, err := loader.Eval(script, "", sk.StringDict{})
 	Require(t, err, ShouldEqual, nil)
 	Wish(t, globals, ShouldHaveStringDictKeys, []string{"f1", "f2", "f3", "f123"})
 	Wish(t, globals["f123"].String(), ShouldEqual, Dedent(`
